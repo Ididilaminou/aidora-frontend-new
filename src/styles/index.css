@@ -1,9 +1,6 @@
 /* ============================================================
    AIDORA — FEUILLE DE STYLE PRINCIPALE
-   ------------------------------------------------------------
-   ⚠️  POUR CHANGER LA CHARTE GRAPHIQUE DE TOUTE L'APP :
-       modifie uniquement les variables du bloc @theme ci-dessous.
-   ============================================================ */
+   ------------------------------------------------------------*/
 
 @import "tailwindcss";
 @import "./animations.css";
