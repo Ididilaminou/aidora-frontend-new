@@ -31,9 +31,11 @@ export interface RegisterPayload {
 
 export interface ReponseInscription {
   message?: string;
+  utilisateurId?: number;
   utilisateur_id?: number;
   telephone?: string;
-  // Le backend peut renvoyer un token direct ou demander une activation
+  email?: string | null;
+  dateExpiration?: string;
   token?: string;
   user?: unknown;
 }
@@ -58,12 +60,13 @@ export async function register(payload: RegisterPayload): Promise<ReponseInscrip
 
 // ============================================================
 // ACTIVATION (code reçu par SMS/email)
+// Le mot de passe est défini à l'inscription — pas à l'activation.
 // ============================================================
 
 export interface ActivationPayload {
-  telephone: string;
   code: string;
-  motDePasse?: string;
+  telephone?: string;
+  courriel?: string;
 }
 
 export async function activerCompte(payload: ActivationPayload) {
@@ -79,4 +82,3 @@ export async function renvoyerCode(telephone: string) {
   const reponse = await api.post("/auth/renvoyer-activation", { telephone });
   return reponse.data?.data ?? reponse.data;
 }
-
