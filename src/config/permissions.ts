@@ -2,6 +2,7 @@
 // AIDORA — PERMISSIONS PAR RÔLE
 // ------------------------------------------------------------
 // Matrice complète des actions et des rôles autorisés.
+// Alignée sur les routes backend (authorize).
 // ============================================================
 
 import type { Role } from "./roles";
@@ -60,33 +61,30 @@ export type Action =
 // ============================================================
 
 export const PERMISSIONS: Record<Action, Role[]> = {
-  // -------- Dons (opérationnel BANQUE uniquement) --------
-  "don.creer":      ["PERSONNEL_BANQUE"],
-  "don.valider":    ["PERSONNEL_BANQUE"],
-  "don.rejeter":    ["PERSONNEL_BANQUE"],
-  "don.supprimer":  ["PERSONNEL_BANQUE"],
+  // -------- Dons (opérationnel BANQUE ; suppression = ADMIN) --------
+  "don.creer":      ["PERSONNEL_BANQUE", "ADMINISTRATEUR"],
+  "don.valider":    ["PERSONNEL_BANQUE", "ADMINISTRATEUR"],
+  "don.rejeter":    ["PERSONNEL_BANQUE", "ADMINISTRATEUR"],
+  "don.supprimer":  ["ADMINISTRATEUR"],
 
   // -------- Demandes --------
-  // Créer → HÔPITAL uniquement
   "demande.creer":               ["PERSONNEL_HOPITAL"],
-  // Traiter → BANQUE uniquement
-  "demande.accepter":            ["PERSONNEL_BANQUE"],
-  "demande.rejeter":             ["PERSONNEL_BANQUE"],
-  "demande.livrer":              ["PERSONNEL_BANQUE"],
-  // Confirmer réception → HÔPITAL uniquement
+  "demande.accepter":            ["PERSONNEL_BANQUE", "ADMINISTRATEUR"],
+  "demande.rejeter":             ["PERSONNEL_BANQUE", "ADMINISTRATEUR"],
+  "demande.livrer":              ["PERSONNEL_BANQUE", "ADMINISTRATEUR"],
   "demande.confirmer_reception": ["PERSONNEL_HOPITAL"],
-  "demande.annuler":             ["PERSONNEL_HOPITAL"],
+  "demande.annuler":             ["PERSONNEL_HOPITAL", "ADMINISTRATEUR"],
 
-  // -------- Poches (BANQUE uniquement) --------
-  "poche.creer":           ["PERSONNEL_BANQUE"],
-  "poche.changer_statut":  ["PERSONNEL_BANQUE"],
-  "poche.supprimer":       ["PERSONNEL_BANQUE"],
+  // -------- Poches (BANQUE) --------
+  "poche.creer":           ["PERSONNEL_BANQUE", "ADMINISTRATEUR"],
+  "poche.changer_statut":  ["PERSONNEL_BANQUE", "ADMINISTRATEUR"],
+  "poche.supprimer":       ["PERSONNEL_BANQUE", "ADMINISTRATEUR"],
 
-  // -------- Stocks (BANQUE uniquement) --------
-  "stock.creer":   ["PERSONNEL_BANQUE"],
-  "stock.entree":  ["PERSONNEL_BANQUE"],
-  "stock.ajuster": ["PERSONNEL_BANQUE"],
-  "stock.seuil":   ["PERSONNEL_BANQUE"],
+  // -------- Stocks (entrée banque ; ajustement/seuil admin) --------
+  "stock.creer":   ["PERSONNEL_BANQUE", "ADMINISTRATEUR"],
+  "stock.entree":  ["PERSONNEL_BANQUE", "ADMINISTRATEUR"],
+  "stock.ajuster": ["ADMINISTRATEUR"],
+  "stock.seuil":   ["ADMINISTRATEUR"],
 
   // -------- RDV --------
   "rdv.creer_creneau":     ["PERSONNEL_BANQUE"],
@@ -96,7 +94,7 @@ export const PERMISSIONS: Record<Action, Role[]> = {
   "rdv.annuler":           ["PERSONNEL_BANQUE", "DONNEUR"],
   "rdv.prendre":           ["DONNEUR"],
 
-  // -------- Donneurs (BANQUE uniquement) --------
+  // -------- Donneurs (BANQUE) --------
   "donneur.creer":      ["PERSONNEL_BANQUE"],
   "donneur.rechercher": ["PERSONNEL_BANQUE"],
   "donneur.solliciter": ["PERSONNEL_BANQUE"],
