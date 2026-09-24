@@ -1,4 +1,4 @@
-﻿// ============================================================
+// ============================================================
 // AIDORA — INSCRIPTION DONNEUR (Cameroun)
 // ============================================================
 
@@ -20,9 +20,6 @@ import { useToast } from "../../../hooks/useToast";
 import { extraireMessageErreur } from "../../../services/api";
 import { ROUTES } from "../../../config/routes";
 
-// ------------------------------------------------------------
-// Suggestions de noms camerounais
-// ------------------------------------------------------------
 const EXEMPLES_PRENOMS = [
   "Marie", "Aïcha", "Fadimatou", "Émilienne", "Nadège",
   "Ibrahim", "Oumarou", "Jean-Pierre", "Bouba", "Céline",
@@ -43,7 +40,6 @@ function placeholderNom() {
   return EXEMPLES_NOMS[Math.floor(Math.random() * EXEMPLES_NOMS.length)];
 }
 
-// Options groupe sanguin
 const GROUPES = [
   { value: "O", label: "O" },
   { value: "A", label: "A" },
@@ -55,10 +51,6 @@ const RHESUS = [
   { value: "POSITIF", label: "+ (Positif)" },
   { value: "NEGATIF", label: "- (Négatif)" },
 ];
-
-// ============================================================
-// PAGE
-// ============================================================
 
 export function RegisterPage() {
   const navigate = useNavigate();
@@ -92,9 +84,6 @@ export function RegisterPage() {
   const [geoChargement, setGeoChargement] = useState(false);
   const [geoSucces, setGeoSucces] = useState(false);
 
-  // --------------------------------------------------------
-  // GÉOLOCALISATION
-  // --------------------------------------------------------
   async function utiliserMaPosition() {
     if (!navigator.geolocation) {
       afficher("Géolocalisation non supportée", "danger");
@@ -147,14 +136,10 @@ export function RegisterPage() {
     );
   }
 
-  // --------------------------------------------------------
-  // SOUMISSION
-  // --------------------------------------------------------
   async function soumettre(e: FormEvent) {
     e.preventDefault();
     setErreur("");
 
-    // -------- Validations --------
     if (!form.prenom.trim() || !form.nom.trim()) {
       setErreur("Le prénom et le nom sont obligatoires.");
       return;
@@ -171,13 +156,17 @@ export function RegisterPage() {
       setErreur("Veuillez sélectionner votre rhésus.");
       return;
     }
-    // Mot de passe : min 8 caractères + au moins une lettre
+    // Aligné backend : min 8 + lettre + chiffre
     if (form.motDePasse.length < 8) {
       setErreur("Le mot de passe doit contenir au moins 8 caractères.");
       return;
     }
     if (!/[a-zA-Z]/.test(form.motDePasse)) {
       setErreur("Le mot de passe doit contenir au moins une lettre.");
+      return;
+    }
+    if (!/\d/.test(form.motDePasse)) {
+      setErreur("Le mot de passe doit contenir au moins un chiffre.");
       return;
     }
     if (form.motDePasse !== form.confirme) {
@@ -206,7 +195,7 @@ export function RegisterPage() {
       afficher(
         "Compte créé",
         "success",
-        "Un code d'activation vous a été envoyé par SMS."
+        "Un code d'activation (valable 15 min) vous a été envoyé."
       );
     } catch (err) {
       const msg = extraireMessageErreur(err);
@@ -217,9 +206,6 @@ export function RegisterPage() {
     }
   }
 
-  // ========================================================
-  // VUE SUCCÈS
-  // ========================================================
   if (succes) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-neutral-50 px-4 py-8 dark:bg-neutral-950">
@@ -232,7 +218,7 @@ export function RegisterPage() {
               Inscription réussie !
             </h1>
             <p className="mt-2 text-sm text-neutral-500 dark:text-neutral-400">
-              Un code d'activation a été envoyé au{" "}
+              Un code d'activation (valable <strong>15 minutes</strong>) a été envoyé au{" "}
               <strong className="text-neutral-700 dark:text-neutral-300">
                 {form.telephone}
               </strong>
@@ -250,20 +236,22 @@ export function RegisterPage() {
             <div className="mt-6 w-full">
               <div className="flex w-full flex-col gap-2">
                 <Button
-                    iconeDroite={<ArrowRight size={16} />}
-                    onClick={() =>
-                    navigate(`${ROUTES.ACTIVATION}?tel=${encodeURIComponent(form.telephone)}`)
-                    }
-                    className="w-full"
+                  iconeDroite={<ArrowRight size={16} />}
+                  onClick={() =>
+                    navigate(
+                      `${ROUTES.ACTIVATION}?tel=${encodeURIComponent(form.telephone)}`
+                    )
+                  }
+                  className="w-full"
                 >
-                    Activer mon compte
+                  Activer mon compte
                 </Button>
                 <Button
-                    variante="ghost"
-                    onClick={() => navigate(ROUTES.CONNEXION)}
-                    className="w-full"
+                  variante="ghost"
+                  onClick={() => navigate(ROUTES.CONNEXION)}
+                  className="w-full"
                 >
-                    Aller à la connexion
+                  Aller à la connexion
                 </Button>
               </div>
             </div>
@@ -273,9 +261,6 @@ export function RegisterPage() {
     );
   }
 
-  // ========================================================
-  // FORMULAIRE
-  // ========================================================
   return (
     <div className="flex min-h-screen items-center justify-center bg-neutral-50 px-4 py-8 dark:bg-neutral-950">
       <div className="w-full max-w-md">
@@ -293,7 +278,6 @@ export function RegisterPage() {
 
         <Card padding="lg">
           <form onSubmit={soumettre} className="flex flex-col gap-4">
-            {/* ---------- IDENTITÉ ---------- */}
             <div className="grid grid-cols-2 gap-3">
               <FormField label="Prénom" obligatoire>
                 <Input
@@ -314,7 +298,6 @@ export function RegisterPage() {
               </FormField>
             </div>
 
-            {/* ---------- GROUPE SANGUIN ---------- */}
             <div className="rounded-xl border-2 border-primary-500/20 bg-primary-50/50 p-4 dark:border-primary-500/20 dark:bg-primary-500/5">
               <div className="mb-3 flex items-center gap-2">
                 <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary-500 text-white">
@@ -354,7 +337,6 @@ export function RegisterPage() {
               </div>
             </div>
 
-            {/* ---------- CONTACT ---------- */}
             <FormField
               label="Téléphone"
               obligatoire
@@ -385,7 +367,6 @@ export function RegisterPage() {
               />
             </FormField>
 
-            {/* ---------- LOCALISATION GPS ---------- */}
             <div className="rounded-xl border-2 border-primary-500/20 bg-primary-50/50 p-4 dark:border-primary-500/20 dark:bg-primary-500/5">
               <div className="flex items-start gap-3">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-500 text-white">
@@ -463,10 +444,7 @@ export function RegisterPage() {
               </FormField>
             </div>
 
-            <FormField
-              label="Adresse détaillée"
-              aide="Optionnel"
-            >
+            <FormField label="Adresse détaillée" aide="Optionnel">
               <Input
                 placeholder="Ex : Rue 1.234, Immeuble ABC"
                 iconeGauche={<MapPin size={16} />}
@@ -477,11 +455,10 @@ export function RegisterPage() {
               />
             </FormField>
 
-            {/* ---------- MOT DE PASSE ---------- */}
             <FormField
               label="Mot de passe"
               obligatoire
-              aide="Au moins 8 caractères dont une lettre"
+              aide="Au moins 8 caractères, une lettre et un chiffre"
             >
               <Input
                 required
@@ -538,8 +515,8 @@ export function RegisterPage() {
           />
           <p className="text-xs text-info-700 dark:text-info-400">
             Après inscription, vous recevrez un{" "}
-            <strong>code d'activation</strong> par SMS. Utilisez-le pour
-            activer votre compte.
+            <strong>code d'activation</strong> (valable 15 minutes) par SMS
+            ou email. Utilisez-le pour activer votre compte.
           </p>
         </div>
       </div>
