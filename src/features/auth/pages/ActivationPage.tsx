@@ -1,12 +1,21 @@
 // ============================================================
 // AIDORA — ACTIVATION DU COMPTE DONNEUR
+// ------------------------------------------------------------
+// Le mot de passe est défini à l'inscription. Ici on active
+// uniquement avec téléphone + code (format AID-XXXXXX, 15 min).
 // ============================================================
 
 import { useState, useEffect, type FormEvent } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
-  Phone, Lock, ShieldCheck, ArrowRight, CheckCircle2,
-  AlertCircle, RefreshCw, KeyRound, Loader2,
+  Phone,
+  ShieldCheck,
+  ArrowRight,
+  CheckCircle2,
+  AlertCircle,
+  RefreshCw,
+  KeyRound,
+  Loader2,
 } from "lucide-react";
 import { Button } from "../../../components/ui/Button";
 import { Input } from "../../../components/ui/Input";
@@ -19,6 +28,7 @@ import { extraireMessageErreur } from "../../../services/api";
 import { ROUTES } from "../../../config/routes";
 
 const DELAI_RENVOI = 60;
+const CODE_REGEX = /^AID-[A-Z0-9]{6}$/;
 
 export function ActivationPage() {
   const navigate = useNavigate();
@@ -27,8 +37,6 @@ export function ActivationPage() {
 
   const [telephone, setTelephone] = useState("");
   const [code, setCode] = useState("");
-  const [motDePasse, setMotDePasse] = useState("");
-  const [confirme, setConfirme] = useState("");
 
   const [erreur, setErreur] = useState("");
   const [chargement, setChargement] = useState(false);
@@ -48,7 +56,6 @@ export function ActivationPage() {
     return () => clearTimeout(timer);
   }, [compteur]);
 
-  // --------------------------------------------------------
   async function activer(e: FormEvent) {
     e.preventDefault();
     setErreur("");
@@ -57,20 +64,10 @@ export function ActivationPage() {
       setErreur("Le numéro de téléphone est invalide.");
       return;
     }
-    if (!code.trim() || code.trim().length < 4) {
-      setErreur("Le code d'activation est invalide.");
-      return;
-    }
-    if (motDePasse.length < 8) {
-      setErreur("Le mot de passe doit contenir au moins 8 caractères.");
-      return;
-    }
-    if (!/[a-zA-Z]/.test(motDePasse)) {
-      setErreur("Le mot de passe doit contenir au moins une lettre.");
-      return;
-    }
-    if (motDePasse !== confirme) {
-      setErreur("Les mots de passe ne correspondent pas.");
+
+    const codeNettoye = code.trim().toUpperCase();
+    if (!CODE_REGEX.test(codeNettoye)) {
+      setErreur("Le code doit respecter le format AID-XXXXXX (ex. AID-K9P2X7).");
       return;
     }
 
@@ -78,8 +75,7 @@ export function ActivationPage() {
     try {
       await activerCompte({
         telephone: telephone.trim(),
-        code: code.trim().toUpperCase(),
-        motDePasse,
+        code: codeNettoye,
       });
 
       setSucces(true);
@@ -93,14 +89,13 @@ export function ActivationPage() {
     }
   }
 
-  // --------------------------------------------------------
   async function handleRenvoyer() {
     if (compteur > 0 || !telephone.trim()) return;
 
     setRenvoiChargement(true);
     try {
       await renvoyerCode(telephone.trim());
-      afficher("Code renvoyé", "success", "Vérifiez vos SMS.");
+      afficher("Code renvoyé", "success", "Vérifiez vos SMS / email.");
       setCompteur(DELAI_RENVOI);
     } catch (err) {
       afficher("Échec", "danger", extraireMessageErreur(err));
@@ -109,9 +104,6 @@ export function ActivationPage() {
     }
   }
 
-  // ========================================================
-  // VUE SUCCÈS
-  // ========================================================
   if (succes) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-neutral-50 px-4 py-8 dark:bg-neutral-950">
@@ -121,11 +113,11 @@ export function ActivationPage() {
               <CheckCircle2 size={32} />
             </div>
             <h1 className="mt-4 text-2xl font-bold text-neutral-900 dark:text-white">
-              Compte activé ! 🎉
+              Compte activé !
             </h1>
             <p className="mt-2 text-sm text-neutral-500 dark:text-neutral-400">
               Bienvenue sur Aidora. Vous pouvez dès maintenant vous connecter
-              et commencer votre parcours de donneur.
+              avec le mot de passe choisi à l'inscription.
             </p>
 
             <Button
@@ -141,13 +133,9 @@ export function ActivationPage() {
     );
   }
 
-  // ========================================================
-  // FORMULAIRE
-  // ========================================================
   return (
     <div className="flex min-h-screen items-center justify-center bg-neutral-50 px-4 py-8 dark:bg-neutral-950">
       <div className="w-full max-w-md">
-        {/* En-tête */}
         <div className="mb-8 text-center">
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary-500 text-white shadow-lg">
             <ShieldCheck size={32} />
@@ -156,7 +144,7 @@ export function ActivationPage() {
             Activer mon compte
           </h1>
           <p className="mt-1 text-sm text-neutral-500 dark:text-neutral-400">
-            Saisissez le code reçu par SMS pour activer votre compte
+            Saisissez le code reçu par SMS ou email (valable 15 minutes)
           </p>
         </div>
 
@@ -189,7 +177,7 @@ export function ActivationPage() {
                 value={code}
                 onChange={(e) => setCode(e.target.value.toUpperCase())}
                 className="font-mono uppercase tracking-widest"
-                maxLength={20}
+                maxLength={10}
               />
             </FormField>
 
@@ -214,32 +202,6 @@ export function ActivationPage() {
               </button>
             </div>
 
-            <FormField
-              label="Mot de passe"
-              obligatoire
-              aide="Au moins 8 caractères dont une lettre"
-            >
-              <Input
-                required
-                type="password"
-                placeholder="••••••••"
-                iconeGauche={<Lock size={16} />}
-                value={motDePasse}
-                onChange={(e) => setMotDePasse(e.target.value)}
-              />
-            </FormField>
-
-            <FormField label="Confirmer le mot de passe" obligatoire>
-              <Input
-                required
-                type="password"
-                placeholder="••••••••"
-                iconeGauche={<Lock size={16} />}
-                value={confirme}
-                onChange={(e) => setConfirme(e.target.value)}
-              />
-            </FormField>
-
             <FormError message={erreur} />
 
             <Button
@@ -263,14 +225,13 @@ export function ActivationPage() {
           </p>
         </Card>
 
-        {/* Info */}
         <div className="mt-6 flex items-start gap-2 rounded-xl border border-info-500/30 bg-info-50 p-3 dark:bg-info-500/5">
           <AlertCircle
             className="mt-0.5 shrink-0 text-info-600 dark:text-info-400"
             size={16}
           />
           <p className="text-xs text-info-700 dark:text-info-400">
-            Le code d'activation est valable <strong>24 heures</strong>. Si
+            Le code d'activation est valable <strong>15 minutes</strong>. Si
             vous ne le recevez pas, cliquez sur "Renvoyer le code".
           </p>
         </div>
