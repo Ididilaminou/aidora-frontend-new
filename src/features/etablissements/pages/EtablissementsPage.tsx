@@ -5,8 +5,8 @@
 import { useState, useMemo, type FormEvent } from "react";
 import {
   Building2, RefreshCw, AlertTriangle, Check, X, Ban, RotateCcw,
-  MapPin, Mail, Phone, Plus, Save, Navigation, Info, Droplets,
-  Search, Pencil, Filter, Hospital, XCircle,
+  MapPin, Mail, Phone, Plus, Save, Navigation, Droplets,
+  Search, Pencil, Filter, XCircle,
 } from "lucide-react";
 import { PageLayout } from "../../../components/layout/PageLayout";
 import { Card } from "../../../components/ui/Card";
@@ -195,11 +195,9 @@ export function EtablissementsPage() {
   const { afficher } = useToast();
   const [actionEnCours, setActionEnCours] = useState<number | null>(null);
 
-  // Recherche + filtres
   const [recherche, setRecherche] = useState("");
   const [filtreType, setFiltreType] = useState<FiltreType>("TOUS");
 
-  // Modale création/édition
   const [modaleOuverte, setModaleOuverte] = useState(false);
   const [etabEnEdition, setEtabEnEdition] = useState<Etablissement | null>(null);
   const [enregistrement, setEnregistrement] = useState(false);
@@ -220,12 +218,11 @@ export function EtablissementsPage() {
   });
 
   // ------------------------------------------------------------
-  // FILTRES (calculés localement)
+  // FILTRES
   // ------------------------------------------------------------
   const etablissementsFiltres = useMemo(() => {
     let liste = etablissements;
 
-    // 1. Filtre par type
     switch (filtreType) {
       case "HOPITAL":
         liste = liste.filter((e) => e.type === "HOPITAL");
@@ -238,7 +235,6 @@ export function EtablissementsPage() {
         break;
     }
 
-    // 2. Recherche textuelle
     const q = recherche.trim().toLowerCase();
     if (q) {
       liste = liste.filter(
@@ -471,7 +467,6 @@ export function EtablissementsPage() {
       {!chargement && !erreur && etablissements.length > 0 && (
         <Card className="mb-6">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-            {/* Recherche */}
             <div className="relative flex-1">
               <Search
                 size={16}
@@ -495,7 +490,6 @@ export function EtablissementsPage() {
               )}
             </div>
 
-            {/* Filtres rapides */}
             <div className="flex flex-wrap gap-2">
               {(
                 [
@@ -525,7 +519,6 @@ export function EtablissementsPage() {
             </div>
           </div>
 
-          {/* Ligne info si filtres actifs */}
           {filtresActifs && (
             <p className="mt-3 text-xs text-neutral-500 dark:text-neutral-400">
               {etablissementsFiltres.length} résultat
@@ -561,7 +554,7 @@ export function EtablissementsPage() {
         </Card>
       )}
 
-      {/* Vide (aucun au total) */}
+      {/* Vide */}
       {!chargement && !erreur && etablissements.length === 0 && (
         <Card>
           <EmptyState
@@ -643,6 +636,7 @@ export function EtablissementsPage() {
         }
       >
         <form id="form-etab" onSubmit={validerFormulaire} className="space-y-4">
+          {/* Nom + Type sur une ligne */}
           <div className="grid gap-3 sm:grid-cols-2">
             <FormField label="Nom" obligatoire>
               <Input
@@ -672,6 +666,7 @@ export function EtablissementsPage() {
             </FormField>
           </div>
 
+          {/* Toggle banque de sang */}
           {form.type === "HOPITAL" && (
             <button
               type="button"
@@ -681,7 +676,7 @@ export function EtablissementsPage() {
                   possede_banque_de_sang: !form.possede_banque_de_sang,
                 })
               }
-              className={`flex w-full items-start gap-3 rounded-xl border-2 p-4 text-left transition ${
+              className={`flex w-full items-start gap-3 rounded-xl border-2 p-3 text-left transition ${
                 form.possede_banque_de_sang
                   ? "border-success-500 bg-success-50 dark:bg-success-500/10"
                   : "border-neutral-200 bg-white hover:border-primary-500 dark:border-neutral-800 dark:bg-neutral-900"
@@ -701,13 +696,13 @@ export function EtablissementsPage() {
                   Cet hôpital possède une banque de sang
                 </p>
                 <p className="mt-0.5 text-xs text-neutral-600 dark:text-neutral-400">
-                  Cochez si l'hôpital accepte les dons (ex : Yamot, Hôpital
-                  Central, Hôpital Général).
+                  Cochez si l'hôpital accepte les dons.
                 </p>
               </div>
             </button>
           )}
 
+          {/* Téléphone + Email */}
           <div className="grid gap-3 sm:grid-cols-2">
             <FormField label="Téléphone">
               <Input
@@ -728,18 +723,18 @@ export function EtablissementsPage() {
             </FormField>
           </div>
 
-          {/* Carte */}
-          <div className="rounded-xl border-2 border-primary-500/20 bg-primary-50/50 p-4 dark:border-primary-500/20 dark:bg-primary-500/5">
-            <div className="mb-3 flex items-start gap-3">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-500 text-white">
-                <MapPin size={18} />
+          {/* Localisation + carte compacte */}
+          <div className="rounded-xl border-2 border-primary-500/20 bg-primary-50/50 p-3 dark:border-primary-500/20 dark:bg-primary-500/5">
+            <div className="mb-2 flex items-center gap-2">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary-500 text-white">
+                <MapPin size={16} />
               </div>
               <div className="flex-1">
                 <p className="text-sm font-semibold text-neutral-900 dark:text-white">
                   Localisation
                 </p>
-                <p className="mt-0.5 text-xs text-neutral-600 dark:text-neutral-400">
-                  Recherchez par nom ou cliquez sur la carte.
+                <p className="text-xs text-neutral-600 dark:text-neutral-400">
+                  Recherchez ou cliquez sur la carte.
                 </p>
               </div>
             </div>
@@ -751,7 +746,7 @@ export function EtablissementsPage() {
                   : null
               }
               onChange={positionChoisie}
-              hauteur="300px"
+              hauteur="180px"
             />
 
             {form.latitude != null && form.longitude != null && (
@@ -761,16 +756,17 @@ export function EtablissementsPage() {
                   {form.latitude.toFixed(5)}, {form.longitude.toFixed(5)}
                 </span>
                 {geoChargement && (
-                  <span className="text-primary-600">· Détection adresse…</span>
+                  <span className="text-primary-600">· Détection…</span>
                 )}
               </div>
             )}
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2">
-            <FormField label="Ville" aide="Rempli automatiquement">
+          {/* Ville + Région + Adresse */}
+          <div className="grid gap-3 sm:grid-cols-3">
+            <FormField label="Ville" aide="Auto">
               <Input
-                placeholder="Ex : Yaoundé"
+                placeholder="Yaoundé"
                 iconeGauche={<MapPin size={16} />}
                 value={form.ville}
                 onChange={(e) => setForm({ ...form, ville: e.target.value })}
@@ -778,28 +774,19 @@ export function EtablissementsPage() {
             </FormField>
             <FormField label="Région">
               <Input
-                placeholder="Ex : Centre"
+                placeholder="Centre"
                 iconeGauche={<MapPin size={16} />}
                 value={form.region}
                 onChange={(e) => setForm({ ...form, region: e.target.value })}
               />
             </FormField>
-          </div>
-
-          <FormField label="Adresse détaillée">
-            <Input
-              placeholder="Ex : Avenue Kennedy, Yaoundé"
-              value={form.adresse}
-              onChange={(e) => setForm({ ...form, adresse: e.target.value })}
-            />
-          </FormField>
-
-          <div className="flex items-start gap-2 rounded-lg border border-info-500/30 bg-info-50 p-3 text-xs text-info-700 dark:bg-info-500/5">
-            <Info size={14} className="mt-0.5 shrink-0" />
-            <p>
-              💡 Au Cameroun, la plupart des grands hôpitaux (Yamot, Central,
-              Général…) disposent d'une banque de sang.
-            </p>
+            <FormField label="Adresse">
+              <Input
+                placeholder="Avenue Kennedy"
+                value={form.adresse}
+                onChange={(e) => setForm({ ...form, adresse: e.target.value })}
+              />
+            </FormField>
           </div>
 
           <FormError message={formErreur} />
