@@ -6,7 +6,6 @@ import api from "../../services/api";
 import type { Don, ReponseDons } from "../../types/don";
 import type { PocheSimple } from "../../types/don";
 
-
 export interface FiltresDons {
   statut?: string;
   etablissement_id?: number;
@@ -20,19 +19,12 @@ function nettoyer(filtres: Record<string, unknown>) {
   );
 }
 
-// ------------------------------------------------------------
-// GET /api/dons — liste paginée
-// ------------------------------------------------------------
 export async function obtenirDons(
   filtres: FiltresDons = {}
 ): Promise<ReponseDons> {
   const reponse = await api.get("/dons", { params: nettoyer(filtres) });
   const data = reponse.data?.data ?? reponse.data ?? {};
 
-  // Tolérance : le backend peut renvoyer :
-  //   { data: { dons: [...] } }
-  //   { data: [...] }
-  //   [...]
   const dons: Don[] = Array.isArray(data?.dons)
     ? data.dons
     : Array.isArray(data)
@@ -47,37 +39,28 @@ export async function obtenirDons(
   };
 }
 
-// ------------------------------------------------------------
-// GET /api/dons/:id
-// ------------------------------------------------------------
 export async function obtenirDon(id: number): Promise<Don> {
   const reponse = await api.get(`/dons/${id}`);
   return reponse.data?.data ?? reponse.data;
 }
 
-// ------------------------------------------------------------
-// PATCH /api/dons/:id/valider
-// ------------------------------------------------------------
 export async function validerDon(id: number): Promise<Don> {
   const reponse = await api.patch(`/dons/${id}/valider`);
   return reponse.data?.data ?? reponse.data;
 }
 
-// ------------------------------------------------------------
-// PATCH /api/dons/:id/rejeter
-// ------------------------------------------------------------
+/** Motif obligatoire (backend : 3–500 caractères). */
 export async function rejeterDon(
   id: number,
-  motif?: string
+  motif: string
 ): Promise<Don> {
-  const reponse = await api.patch(`/dons/${id}/rejeter`, { motif });
+  const texte = (motif ?? "").trim();
+  if (texte.length < 3) {
+    throw new Error("Le motif de rejet doit contenir au moins 3 caractères.");
+  }
+  const reponse = await api.patch(`/dons/${id}/rejeter`, { motif: texte });
   return reponse.data?.data ?? reponse.data;
 }
-
-// ============================================================
-// CRÉATION DE DON
-// ============================================================
-
 
 export interface CreerDonPayload {
   donneur_id: number;
@@ -90,10 +73,6 @@ export async function creerDon(payload: CreerDonPayload): Promise<Don> {
   const reponse = await api.post("/dons", payload);
   return reponse.data?.data ?? reponse.data;
 }
-
-// ------------------------------------------------------------
-// Recherche de donneurs (pour le sélecteur)
-// ------------------------------------------------------------
 
 export interface DonneurSimple {
   id: number;
