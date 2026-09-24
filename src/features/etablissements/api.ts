@@ -97,3 +97,14 @@ export async function creerEtablissement(
   const reponse = await api.post("/etablissements", payload);
   return reponse.data?.data ?? reponse.data;
 }
+
+// ============================================================
+// MODIFIER ÉTABLISSEMENT
+// ============================================================
+export async function modifierEtablissement(
+  id: number,
+  payload: Partial<CreerEtablissementPayload>
+): Promise<Etablissement> {
+  const reponse = await api.put(`/etablissements/${id}`, payload);
+  return reponse.data?.data ?? reponse.data;
+}

@@ -2,10 +2,11 @@
 // AIDORA — PAGE ÉTABLISSEMENTS
 // ============================================================
 
-import { useState, type FormEvent } from "react";
+import { useState, useMemo, type FormEvent } from "react";
 import {
   Building2, RefreshCw, AlertTriangle, Check, X, Ban, RotateCcw,
   MapPin, Mail, Phone, Plus, Save, Navigation, Info, Droplets,
+  Search, Pencil, Filter, Hospital, XCircle,
 } from "lucide-react";
 import { PageLayout } from "../../../components/layout/PageLayout";
 import { Card } from "../../../components/ui/Card";
@@ -24,7 +25,7 @@ import { useEtablissements } from "../hooks/useEtablissements";
 import {
   validerEtablissement, rejeterEtablissement,
   suspendreEtablissement, reactiverEtablissement,
-  creerEtablissement,
+  creerEtablissement, modifierEtablissement,
 } from "../api";
 import { reverseGeocode } from "../../donneurs/api";
 import { useToast } from "../../../hooks/useToast";
@@ -36,6 +37,7 @@ import {
 } from "../../../types/etablissement";
 
 type Action = "valider" | "rejeter" | "suspendre" | "reactiver";
+type FiltreType = "TOUS" | "HOPITAL" | "BANQUE_DE_SANG" | "AVEC_BANQUE";
 
 // ============================================================
 // CARTE D'UN ÉTABLISSEMENT
@@ -44,14 +46,16 @@ type Action = "valider" | "rejeter" | "suspendre" | "reactiver";
 function CarteEtablissement({
   etab,
   onAction,
+  onModifier,
   enCours,
 }: {
   etab: Etablissement;
   onAction: (id: number, action: Action) => void;
+  onModifier: (etab: Etablissement) => void;
   enCours: boolean;
 }) {
   const hopital = etab.type === "HOPITAL";
-  const avecBanque = hopital && possedeBanque(etab);
+  const avecBanque = possedeBanque(etab);
 
   return (
     <Card hoverable>
@@ -121,6 +125,15 @@ function CarteEtablissement({
 
       <CanDo action="etablissement.valider">
         <div className="mt-4 flex flex-wrap gap-2 border-t border-neutral-100 pt-4 dark:border-neutral-800">
+          <Button
+            taille="sm"
+            variante="outline"
+            iconeGauche={<Pencil size={14} />}
+            onClick={() => onModifier(etab)}
+          >
+            Modifier
+          </Button>
+
           {estEnAttente(etab) && (
             <>
               <Button
@@ -182,7 +195,13 @@ export function EtablissementsPage() {
   const { afficher } = useToast();
   const [actionEnCours, setActionEnCours] = useState<number | null>(null);
 
+  // Recherche + filtres
+  const [recherche, setRecherche] = useState("");
+  const [filtreType, setFiltreType] = useState<FiltreType>("TOUS");
+
+  // Modale création/édition
   const [modaleOuverte, setModaleOuverte] = useState(false);
+  const [etabEnEdition, setEtabEnEdition] = useState<Etablissement | null>(null);
   const [enregistrement, setEnregistrement] = useState(false);
   const [formErreur, setFormErreur] = useState("");
   const [geoChargement, setGeoChargement] = useState(false);
@@ -200,7 +219,45 @@ export function EtablissementsPage() {
     longitude: null as number | null,
   });
 
+  // ------------------------------------------------------------
+  // FILTRES (calculés localement)
+  // ------------------------------------------------------------
+  const etablissementsFiltres = useMemo(() => {
+    let liste = etablissements;
+
+    // 1. Filtre par type
+    switch (filtreType) {
+      case "HOPITAL":
+        liste = liste.filter((e) => e.type === "HOPITAL");
+        break;
+      case "BANQUE_DE_SANG":
+        liste = liste.filter((e) => e.type === "BANQUE_DE_SANG");
+        break;
+      case "AVEC_BANQUE":
+        liste = liste.filter((e) => e.type === "HOPITAL" && possedeBanque(e));
+        break;
+    }
+
+    // 2. Recherche textuelle
+    const q = recherche.trim().toLowerCase();
+    if (q) {
+      liste = liste.filter(
+        (e) =>
+          e.nom.toLowerCase().includes(q) ||
+          (e.ville ?? "").toLowerCase().includes(q) ||
+          (e.region ?? "").toLowerCase().includes(q) ||
+          (e.email ?? "").toLowerCase().includes(q)
+      );
+    }
+
+    return liste;
+  }, [etablissements, filtreType, recherche]);
+
+  // ------------------------------------------------------------
+  // CRÉATION / ÉDITION
+  // ------------------------------------------------------------
   function ouvrirCreation() {
+    setEtabEnEdition(null);
     setForm({
       nom: "",
       type: "BANQUE_DE_SANG",
@@ -212,6 +269,24 @@ export function EtablissementsPage() {
       email: "",
       latitude: null,
       longitude: null,
+    });
+    setFormErreur("");
+    setModaleOuverte(true);
+  }
+
+  function ouvrirEdition(etab: Etablissement) {
+    setEtabEnEdition(etab);
+    setForm({
+      nom: etab.nom,
+      type: etab.type,
+      possede_banque_de_sang: possedeBanque(etab),
+      adresse: etab.adresse ?? "",
+      ville: etab.ville ?? "",
+      region: etab.region ?? "",
+      telephone: etab.telephone ?? "",
+      email: etab.email ?? "",
+      latitude: etab.latitude ?? null,
+      longitude: etab.longitude ?? null,
     });
     setFormErreur("");
     setModaleOuverte(true);
@@ -234,7 +309,7 @@ export function EtablissementsPage() {
     }
   }
 
-  async function validerCreation(e: FormEvent) {
+  async function validerFormulaire(e: FormEvent) {
     e.preventDefault();
     setFormErreur("");
 
@@ -251,7 +326,7 @@ export function EtablissementsPage() {
 
     setEnregistrement(true);
     try {
-      await creerEtablissement({
+      const payload = {
         nom: form.nom.trim(),
         type: form.type,
         possede_banque_de_sang:
@@ -263,13 +338,15 @@ export function EtablissementsPage() {
         email: form.email.trim() || undefined,
         latitude: form.latitude,
         longitude: form.longitude,
-      });
+      };
 
-      afficher(
-        "Établissement créé",
-        "success",
-        "En attente de validation admin."
-      );
+      if (etabEnEdition) {
+        await modifierEtablissement(etabEnEdition.id, payload);
+        afficher("Établissement modifié", "success");
+      } else {
+        await creerEtablissement(payload);
+        afficher("Établissement créé", "success", "En attente de validation.");
+      }
       setModaleOuverte(false);
       await recharger();
     } catch (err) {
@@ -308,12 +385,17 @@ export function EtablissementsPage() {
     }
   }
 
+  // ------------------------------------------------------------
+  // STATS
+  // ------------------------------------------------------------
   const enAttente = etablissements.filter(estEnAttente).length;
   const actifs = etablissements.filter(estActif).length;
   const banques = etablissements.filter((e) => e.type === "BANQUE_DE_SANG").length;
   const hopitauxAvecBanque = etablissements.filter(
     (e) => e.type === "HOPITAL" && possedeBanque(e)
   ).length;
+
+  const filtresActifs = filtreType !== "TOUS" || recherche.trim().length > 0;
 
   return (
     <PageLayout
@@ -337,6 +419,7 @@ export function EtablissementsPage() {
         </>
       }
     >
+      {/* Alerte en attente */}
       {!chargement && enAttente > 0 && (
         <Card className="mb-4 border-warning-500/30 bg-warning-50">
           <div className="flex items-center gap-3">
@@ -354,20 +437,17 @@ export function EtablissementsPage() {
         </Card>
       )}
 
+      {/* Stats */}
       {!chargement && !erreur && etablissements.length > 0 && (
         <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Card>
-            <p className="text-xs text-neutral-500 dark:text-neutral-400">
-              Total
-            </p>
+            <p className="text-xs text-neutral-500 dark:text-neutral-400">Total</p>
             <p className="mt-1 text-2xl font-bold text-neutral-900 dark:text-white">
               {etablissements.length}
             </p>
           </Card>
           <Card>
-            <p className="text-xs text-neutral-500 dark:text-neutral-400">
-              Actifs
-            </p>
+            <p className="text-xs text-neutral-500 dark:text-neutral-400">Actifs</p>
             <p className="mt-1 text-2xl font-bold text-success-700">{actifs}</p>
           </Card>
           <Card>
@@ -387,6 +467,76 @@ export function EtablissementsPage() {
         </div>
       )}
 
+      {/* Barre de recherche + filtres */}
+      {!chargement && !erreur && etablissements.length > 0 && (
+        <Card className="mb-6">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+            {/* Recherche */}
+            <div className="relative flex-1">
+              <Search
+                size={16}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400"
+              />
+              <input
+                type="text"
+                placeholder="Rechercher par nom, ville, région, email…"
+                value={recherche}
+                onChange={(e) => setRecherche(e.target.value)}
+                className="h-10 w-full rounded-lg border border-neutral-200 bg-neutral-50 pl-9 pr-9 text-sm outline-none transition focus:border-primary-500 focus:bg-white focus:ring-4 focus:ring-primary-100 dark:border-neutral-700 dark:bg-neutral-800 dark:text-white"
+              />
+              {recherche && (
+                <button
+                  onClick={() => setRecherche("")}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-700"
+                  aria-label="Effacer"
+                >
+                  <XCircle size={14} />
+                </button>
+              )}
+            </div>
+
+            {/* Filtres rapides */}
+            <div className="flex flex-wrap gap-2">
+              {(
+                [
+                  { key: "TOUS", label: "Tous", icone: Filter },
+                  { key: "HOPITAL", label: "Hôpitaux", icone: Building2 },
+                  { key: "BANQUE_DE_SANG", label: "Banques", icone: Droplets },
+                  { key: "AVEC_BANQUE", label: "Avec banque", icone: Droplets },
+                ] as const
+              ).map((f) => {
+                const Icone = f.icone;
+                const actif = filtreType === f.key;
+                return (
+                  <button
+                    key={f.key}
+                    onClick={() => setFiltreType(f.key as FiltreType)}
+                    className={`inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition ${
+                      actif
+                        ? "bg-primary-500 text-white shadow-sm"
+                        : "bg-neutral-100 text-neutral-700 hover:bg-neutral-200 dark:bg-neutral-800 dark:text-neutral-300 dark:hover:bg-neutral-700"
+                    }`}
+                  >
+                    <Icone size={12} />
+                    {f.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Ligne info si filtres actifs */}
+          {filtresActifs && (
+            <p className="mt-3 text-xs text-neutral-500 dark:text-neutral-400">
+              {etablissementsFiltres.length} résultat
+              {etablissementsFiltres.length > 1 ? "s" : ""}
+              {recherche && ` pour « ${recherche} »`}
+            </p>
+          )}
+        </Card>
+      )}
+
+      {/* Erreur */}
       {erreur && (
         <Card className="mb-4 border-danger-500/30 bg-danger-50">
           <div className="flex items-start gap-3">
@@ -404,12 +554,14 @@ export function EtablissementsPage() {
         </Card>
       )}
 
+      {/* Chargement */}
       {chargement && !erreur && (
         <Card>
           <Loader texte="Chargement des établissements…" />
         </Card>
       )}
 
+      {/* Vide (aucun au total) */}
       {!chargement && !erreur && etablissements.length === 0 && (
         <Card>
           <EmptyState
@@ -427,24 +579,51 @@ export function EtablissementsPage() {
         </Card>
       )}
 
-      {!chargement && !erreur && etablissements.length > 0 && (
+      {/* Vide (filtres) */}
+      {!chargement &&
+        !erreur &&
+        etablissements.length > 0 &&
+        etablissementsFiltres.length === 0 && (
+          <Card>
+            <EmptyState
+              icone={<Search size={22} />}
+              titre="Aucun résultat"
+              description="Essayez de modifier votre recherche ou vos filtres."
+              action={
+                <Button
+                  variante="outline"
+                  onClick={() => {
+                    setRecherche("");
+                    setFiltreType("TOUS");
+                  }}
+                >
+                  Réinitialiser
+                </Button>
+              }
+            />
+          </Card>
+        )}
+
+      {/* Grille */}
+      {!chargement && !erreur && etablissementsFiltres.length > 0 && (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {etablissements.map((e) => (
+          {etablissementsFiltres.map((e) => (
             <CarteEtablissement
               key={e.id}
               etab={e}
               onAction={gererAction}
+              onModifier={ouvrirEdition}
               enCours={actionEnCours === e.id}
             />
           ))}
         </div>
       )}
 
-      {/* ============ MODALE CRÉATION ============ */}
+      {/* ============ MODALE CRÉATION / ÉDITION ============ */}
       <Modal
         ouverte={modaleOuverte}
         onFermer={() => setModaleOuverte(false)}
-        titre="Nouvel établissement"
+        titre={etabEnEdition ? "Modifier l'établissement" : "Nouvel établissement"}
         description="Recherchez ou cliquez sur la carte pour placer l'établissement."
         taille="lg"
         footer={
@@ -458,12 +637,12 @@ export function EtablissementsPage() {
               type="submit"
               form="form-etab"
             >
-              Créer
+              {etabEnEdition ? "Enregistrer" : "Créer"}
             </Button>
           </>
         }
       >
-        <form id="form-etab" onSubmit={validerCreation} className="space-y-4">
+        <form id="form-etab" onSubmit={validerFormulaire} className="space-y-4">
           <div className="grid gap-3 sm:grid-cols-2">
             <FormField label="Nom" obligatoire>
               <Input
@@ -535,9 +714,7 @@ export function EtablissementsPage() {
                 placeholder="+237 2XX XX XX XX"
                 iconeGauche={<Phone size={16} />}
                 value={form.telephone}
-                onChange={(e) =>
-                  setForm({ ...form, telephone: e.target.value })
-                }
+                onChange={(e) => setForm({ ...form, telephone: e.target.value })}
               />
             </FormField>
             <FormField label="Email">
@@ -551,7 +728,7 @@ export function EtablissementsPage() {
             </FormField>
           </div>
 
-          {/* CARTE + RECHERCHE */}
+          {/* Carte */}
           <div className="rounded-xl border-2 border-primary-500/20 bg-primary-50/50 p-4 dark:border-primary-500/20 dark:bg-primary-500/5">
             <div className="mb-3 flex items-start gap-3">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary-500 text-white">
