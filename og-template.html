@@ -1,0 +1,293 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Aidora — Template OG Image</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800;900&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Inter", sans-serif;
+        background: #1a1a1a;
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 40px;
+      }
+
+      /* ============================================================
+         L'IMAGE OG — 1200 × 630 pixels
+         ============================================================ */
+      .og-image {
+        width: 1200px;
+        height: 630px;
+        position: relative;
+        overflow: hidden;
+        background: linear-gradient(135deg, #dc2626 0%, #991b1b 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 24px;
+        box-shadow: 0 40px 80px rgba(0, 0, 0, 0.4);
+      }
+
+      /* Halos décoratifs floutés */
+      .halo {
+        position: absolute;
+        border-radius: 50%;
+        filter: blur(80px);
+        opacity: 0.4;
+      }
+      .halo-1 {
+        width: 500px;
+        height: 500px;
+        background: #fca5a5;
+        top: -150px;
+        right: -100px;
+      }
+      .halo-2 {
+        width: 400px;
+        height: 400px;
+        background: #fecaca;
+        bottom: -150px;
+        left: -100px;
+        opacity: 0.3;
+      }
+      .halo-3 {
+        width: 300px;
+        height: 300px;
+        background: #7f1d1d;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        opacity: 0.5;
+      }
+
+      /* Goutte géante en filigrane */
+      .drop-bg {
+        position: absolute;
+        right: -80px;
+        top: 50%;
+        transform: translateY(-50%);
+        opacity: 0.08;
+      }
+
+      /* Contenu principal */
+      .content {
+        position: relative;
+        z-index: 2;
+        display: flex;
+        align-items: center;
+        gap: 60px;
+        padding: 0 80px;
+        width: 100%;
+      }
+
+      /* Logo à gauche */
+      .logo-container {
+        flex-shrink: 0;
+        width: 200px;
+        height: 200px;
+        background: rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(20px);
+        border: 2px solid rgba(255, 255, 255, 0.25);
+        border-radius: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 30px;
+      }
+
+      .logo-container img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+      }
+
+      /* Fallback : goutte SVG si logo.png absent */
+      .logo-fallback {
+        width: 100%;
+        height: 100%;
+        color: white;
+      }
+
+      /* Texte à droite */
+      .text-content {
+        flex: 1;
+        color: white;
+      }
+
+      .brand-name {
+        font-size: 68px;
+        font-weight: 900;
+        letter-spacing: -2px;
+        line-height: 1;
+        margin-bottom: 16px;
+        text-shadow: 0 2px 20px rgba(0, 0, 0, 0.15);
+      }
+
+      .tagline {
+        font-size: 30px;
+        font-weight: 700;
+        line-height: 1.2;
+        margin-bottom: 24px;
+        color: #fecaca;
+      }
+
+      .description {
+        font-size: 20px;
+        line-height: 1.5;
+        opacity: 0.95;
+        max-width: 620px;
+        margin-bottom: 32px;
+        font-weight: 400;
+      }
+
+      /* Badge en bas */
+      .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 12px;
+        padding: 12px 24px;
+        background: rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.25);
+        border-radius: 100px;
+        font-size: 16px;
+        font-weight: 600;
+      }
+
+      .badge-dot {
+        width: 10px;
+        height: 10px;
+        background: #86efac;
+        border-radius: 50%;
+        box-shadow: 0 0 12px #86efac;
+        animation: pulse 2s infinite;
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+          transform: scale(1);
+        }
+        50% {
+          opacity: 0.6;
+          transform: scale(1.2);
+        }
+      }
+
+      /* URL en bas à droite */
+      .url {
+        position: absolute;
+        bottom: 40px;
+        right: 80px;
+        font-size: 18px;
+        font-weight: 600;
+        color: rgba(255, 255, 255, 0.7);
+        letter-spacing: 0.5px;
+        z-index: 2;
+      }
+
+      /* Instructions (à retirer pour l'export) */
+      .instructions {
+        position: fixed;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: white;
+        padding: 16px 24px;
+        border-radius: 12px;
+        font-size: 14px;
+        color: #1a1a1a;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+        z-index: 100;
+        font-weight: 500;
+      }
+
+      @media print {
+        .instructions {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Instructions (invisibles à l'export) -->
+    <div class="instructions">
+      📸 F12 → clic droit sur l'image → "Capture node screenshot"
+    </div>
+
+    <!-- ============================================================
+         L'IMAGE OG (1200 × 630)
+         ============================================================ -->
+    <div class="og-image">
+      <!-- Halos floutés -->
+      <div class="halo halo-1"></div>
+      <div class="halo halo-2"></div>
+      <div class="halo halo-3"></div>
+
+      <!-- Goutte en filigrane -->
+      <svg
+        class="drop-bg"
+        width="500"
+        height="500"
+        viewBox="0 0 24 24"
+        fill="white"
+      >
+        <path
+          d="M12 2s7 7.58 7 12a7 7 0 11-14 0c0-4.42 7-12 7-12z"
+        />
+      </svg>
+
+      <!-- Contenu principal -->
+      <div class="content">
+        <!-- Logo -->
+        <div class="logo-container">
+          <img
+            src="./public/logo.png"
+            alt="Aidora"
+            onerror="this.style.display='none'; this.nextElementSibling.style.display='block';"
+          />
+          <svg
+            class="logo-fallback"
+            style="display: none"
+            viewBox="0 0 24 24"
+            fill="currentColor"
+          >
+            <path d="M12 2s7 7.58 7 12a7 7 0 11-14 0c0-4.42 7-12 7-12z" />
+          </svg>
+        </div>
+
+        <!-- Texte -->
+        <div class="text-content">
+          <h1 class="brand-name">Aidora</h1>
+          <p class="tagline">Chaque goutte sauve une vie.</p>
+          <p class="description">
+            La première plateforme camerounaise qui connecte les donneurs de
+            sang aux banques et hôpitaux.
+          </p>
+          <div class="badge">
+            <span class="badge-dot"></span>
+            <span>Disponible 24/7 au Cameroun</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- URL -->
+      <div class="url">aidora.cm</div>
+    </div>
+  </body>
+</html>

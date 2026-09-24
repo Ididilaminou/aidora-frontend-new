@@ -1,0 +1,46 @@
+/* ============================================================
+   AIDORA — ANIMATIONS (compléments)
+   ------------------------------------------------------------
+   Les keyframes et les classes animate-* sont définies dans
+   index.css (bloc @theme) pour Tailwind v4.
+   Ici : délais + accessibilité uniquement.
+   ============================================================ */
+
+/* ============================================================
+   DÉLAIS EN CASCADE — utilitaires prêts à l'emploi
+   ------------------------------------------------------------
+   Utilisation : <div className="animate-slide-up delay-200">
+   ============================================================ */
+
+.delay-75  { animation-delay: 75ms; }
+.delay-100 { animation-delay: 100ms; }
+.delay-150 { animation-delay: 150ms; }
+.delay-200 { animation-delay: 200ms; }
+.delay-300 { animation-delay: 300ms; }
+.delay-400 { animation-delay: 400ms; }
+.delay-500 { animation-delay: 500ms; }
+
+/* ============================================================
+   ACCESSIBILITÉ — respect des préférences système
+   ------------------------------------------------------------
+   Si l'utilisateur active "réduire les animations", on coupe
+   tout SAUF les spinners (indicateurs de chargement).
+   ============================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  /* On garde les loaders qui tournent */
+  .animate-spin,
+  .animate-spin-slow {
+    animation-duration: 0.8s !important;
+    animation-iteration-count: infinite !important;
+  }
+}
