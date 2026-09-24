@@ -2,6 +2,19 @@
    AIDORA — FEUILLE DE STYLE PRINCIPALE
    ------------------------------------------------------------*/
 
+/* ============================================================
+   SCROLL GLOBAL
+   ============================================================ */
+html,
+body {
+  height: 100%;
+  overflow-x: hidden;
+}
+
+body {
+  overflow-y: auto;
+}   
+
 @import "tailwindcss";
 @import "./animations.css";
 @import "leaflet/dist/leaflet.css";

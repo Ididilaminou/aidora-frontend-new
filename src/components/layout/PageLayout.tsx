@@ -1,8 +1,5 @@
 ﻿// ============================================================
 // AIDORA — MISE EN PAGE PRINCIPALE
-// ------------------------------------------------------------
-// Assemble : Sidebar + Header + contenu + Footer.
-// À utiliser dans TOUTES les pages protégées.
 // ============================================================
 
 import { useState, type ReactNode } from "react";
@@ -29,7 +26,6 @@ export function PageLayout({
 
   return (
     <div className="min-h-screen bg-neutral-50 dark:bg-neutral-950">
-      {/* -------- Sidebar -------- */}
       <Sidebar
         ouverteMobile={sidebarMobile}
         onFermerMobile={() => setSidebarMobile(false)}
@@ -37,18 +33,17 @@ export function PageLayout({
         onToggleReduite={() => setSidebarReduite((v) => !v)}
       />
 
-      {/* -------- Contenu principal -------- */}
       <div
         className={cn(
           "flex min-h-screen flex-col transition-all duration-300 ease-out",
-          // Sur desktop : décale selon l'état de la sidebar
           sidebarReduite ? "lg:ml-20" : "lg:ml-64"
         )}
       >
+        {/* Header sticky */}
         <Header onOuvrirSidebar={() => setSidebarMobile(true)} />
 
+        {/* Contenu principal */}
         <main className="flex-1 px-4 py-6 sm:px-6 lg:px-8">
-          {/* En-tête de page */}
           {(titre || actions) && (
             <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div className="min-w-0">
@@ -69,7 +64,6 @@ export function PageLayout({
             </div>
           )}
 
-          {/* Contenu */}
           <div className="animate-fade-in">{children}</div>
         </main>
 
