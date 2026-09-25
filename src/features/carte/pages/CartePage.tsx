@@ -38,8 +38,6 @@ interface DonneurGeo {
   rhesus?: string;
   latitude?: number | null;
   longitude?: number | null;
-  ville?: string | null;
-  quartier?: string | null;
   disponible?: number | boolean;
   telephone?: string;
   etablissement_nom?: string;
@@ -220,8 +218,6 @@ export function CartePage() {
       type: "donneur",
       details: (
         <div className="text-xs space-y-1">
-          {d.quartier && <p>🏘️ {d.quartier}</p>}
-          {d.ville && <p>📍 {d.ville}</p>}
           {d.telephone && <p>📞 {d.telephone}</p>}
           {d.etablissement_nom && <p>🏥 {d.etablissement_nom}</p>}
         </div>
