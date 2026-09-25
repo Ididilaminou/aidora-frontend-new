@@ -8,9 +8,9 @@
 
 import { Navigate, useLocation } from "react-router-dom";
 import type { ReactNode } from "react";
-import { useAuth } from "../hooks/useAuth";
-import { ROUTES } from "../config/routes";
-import { aAcces, accueilPour, type Role } from "../config/roles";
+import { useAuth } from "../hooks/useAuth.ts";
+import { ROUTES } from "../config/routes.ts";
+import { aAcces, accueilPour, type Role } from "../config/roles.ts";
 
 export function ProtectedRoute({ children }: { children: ReactNode }) {
   const { estConnecte, chargement, utilisateur } = useAuth();
