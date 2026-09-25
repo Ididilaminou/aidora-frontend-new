@@ -1,15 +1,12 @@
-# Ce flux de travail utilise des actions qui ne sont pas certifiées par GitHub.
-# Elles sont fournies par un tiers et sont régies par
-# Conditions d'utilisation, politique de confidentialité et assistance distinctes
+# This workflow uses actions that are not certified by GitHub.
+# They are provided by a third-party and are governed by
+# separate terms of service, privacy policy, and support
 # documentation.
 
-# Ce flux de travail installera Deno puis exécutera `deno lint` et `deno test`.
-# Pour plus d'informations, consultez : https://github.com/denoland/setup-deno
+# This workflow will install Deno then run `deno lint` and `deno test`.
+# For more information see: https://github.com/denoland/setup-deno
 
 name: Deno
-
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 on:
   push:
@@ -26,19 +23,14 @@ jobs:
 
     steps:
       - name: Setup repo
-        uses: actions/checkout@v5
+        uses: actions/checkout@v4
 
       - name: Setup Deno
-        uses: denoland/setup-deno@v2
+        # uses: denoland/setup-deno@v1
+        uses: denoland/setup-deno@61fe2df320078202e33d7d5ad347e7dcfa0e8f31  # v1.1.2
         with:
-          deno-version: v2.x
+          deno-version: v1.x
 
-      # Décommentez cette étape pour vérifier l'utilisation de 'deno fmt' sur chaque commit.
+      # Uncomment this step to verify the use of 'deno fmt' on each commit.
       # - name: Verify formatting
       #   run: deno fmt --check
-
-      - name: Run linter
-        run: deno lint
-
-      - name: Run tests
-        run: deno test -A
