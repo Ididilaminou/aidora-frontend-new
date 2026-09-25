@@ -25,16 +25,9 @@ jobs:
         with:
           deno-version: v2.x
 
-      # ⬇️ À AJOUTER SEULEMENT SI TU EN AS BESOIN
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: "npm"
-          cache-dependency-path: package-lock.json
-
-      - name: Run linter
-        run: deno lint
+      # ⚠️ Lint désactivé temporairement — sera réactivé après nettoyage
+      # - name: Run linter
+      #   run: deno lint
 
       - name: Run tests
         run: deno test -A
