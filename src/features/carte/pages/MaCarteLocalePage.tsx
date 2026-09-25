@@ -57,10 +57,13 @@ export function MaCarteLocalePage() {
   const [positionUtilisateur, setPositionUtilisateur] = useState<[number, number] | null>(null);
   const [chargementGeo, setChargementGeo] = useState(false);
 
+  // ✅ Extraction des valeurs utilisées dans le useCallback
+  //    (évite le warning React Compiler sur les dépendances)
+  const etablissementId = utilisateur?.etablissement_id;
   const estBanque = utilisateur?.role === "PERSONNEL_BANQUE";
 
   const charger = useCallback(async () => {
-    if (!utilisateur?.etablissement_id) {
+    if (!etablissementId) {
       setErreur("Aucun établissement associé à votre compte.");
       setChargement(false);
       return;
@@ -69,9 +72,7 @@ export function MaCarteLocalePage() {
     setErreur(null);
     try {
       // 1. Mon établissement
-      const repEtab = await api.get(
-        `/etablissements/${utilisateur.etablissement_id}`
-      );
+      const repEtab = await api.get(`/etablissements/${etablissementId}`);
       const etab: Etablissement = repEtab.data?.data ?? repEtab.data;
       setMonEtab(etab);
 
@@ -143,7 +144,7 @@ export function MaCarteLocalePage() {
     } finally {
       setChargement(false);
     }
-  }, [utilisateur?.etablissement_id, estBanque]);
+  }, [etablissementId, estBanque]); // 
 
   useEffect(() => {
     charger();

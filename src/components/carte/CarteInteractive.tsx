@@ -29,7 +29,7 @@ export interface Marqueur {
   position: [number, number]; // [latitude, longitude]
   titre: string;
   sousTitre?: string;
-  type: "banque" | "hopital" | "donneur" | "vous";
+  type?: "banque" | "hopital" | "donneur" | "personnel" | "vous";
   details?: React.ReactNode;
 }
 
