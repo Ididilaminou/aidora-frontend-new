@@ -5,6 +5,7 @@
 // en développement ET en production.
 // ============================================================
 
+import type { ReactNode } from "react";
 import { MapContainer, TileLayer, CircleMarker, Popup } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -17,7 +18,7 @@ export interface Marqueur {
   titre: string;
   sousTitre?: string;
   type?: "banque" | "hopital" | "donneur" | "personnel" | "vous";
-  details?: React.ReactNode;
+  details?: ReactNode;
 }
 
 interface CarteInteractiveProps {
@@ -35,11 +36,11 @@ const STYLES: Record<
   string,
   { couleur: string; rayon: number; bordure: number }
 > = {
-  banque:    { couleur: "#dc2626", rayon: 12, bordure: 3 }, // rouge
-  hopital:   { couleur: "#2563eb", rayon: 10, bordure: 3 }, // bleu
-  donneur:   { couleur: "#16a34a", rayon: 7,  bordure: 2 }, // vert
-  personnel: { couleur: "#ea580c", rayon: 8,  bordure: 2 }, // orange
-  vous:      { couleur: "#7c3aed", rayon: 11, bordure: 4 }, // violet
+  banque:    { couleur: "#dc2626", rayon: 12, bordure: 3 },
+  hopital:   { couleur: "#2563eb", rayon: 10, bordure: 3 },
+  donneur:   { couleur: "#16a34a", rayon: 7,  bordure: 2 },
+  personnel: { couleur: "#ea580c", rayon: 8,  bordure: 2 },
+  vous:      { couleur: "#7c3aed", rayon: 11, bordure: 4 },
 };
 
 const STYLE_DEFAUT = STYLES.donneur;
@@ -79,8 +80,8 @@ export function CarteInteractive({
               center={m.position}
               radius={style.rayon}
               pathOptions={{
-                color: "#ffffff",              // bordure blanche
-                fillColor: style.couleur,      // remplissage coloré
+                color: "#ffffff",
+                fillColor: style.couleur,
                 fillOpacity: 0.9,
                 weight: style.bordure,
               }}
