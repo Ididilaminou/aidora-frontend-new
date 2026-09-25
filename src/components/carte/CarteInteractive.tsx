@@ -1,54 +1,12 @@
 // ============================================================
 // AIDORA — COMPOSANT CARTE INTERACTIVE
 // ------------------------------------------------------------
-// Affiche une carte OpenStreetMap avec des marqueurs colorés.
-// Les icônes sont des SVG inline (aucune dépendance externe).
+// Utilise CircleMarker (aucune image requise) → fonctionne
+// en développement ET en production.
 // ============================================================
 
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
-import L from "leaflet";
+import { MapContainer, TileLayer, CircleMarker, Popup } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
-
-// ------------------------------------------------------------
-// Icône SVG inline — évite les appels réseau et les erreurs
-// ------------------------------------------------------------
-function creerIcone(couleur: string) {
-  const svg = `
-    <svg xmlns="http://www.w3.org/2000/svg" width="30" height="42" viewBox="0 0 30 42">
-      <path fill="${couleur}" stroke="#ffffff" stroke-width="2"
-        d="M15 0C6.7 0 0 6.7 0 15c0 10.5 15 27 15 27s15-16.5 15-27C30 6.7 23.3 0 15 0z"/>
-      <circle fill="#ffffff" cx="15" cy="15" r="5"/>
-    </svg>
-  `;
-  return L.divIcon({
-    html: svg,
-    className: "aidora-marker",   // pas de classe leaflet par défaut
-    iconSize: [30, 42],
-    iconAnchor: [15, 42],
-    popupAnchor: [0, -42],
-  });
-}
-
-// ------------------------------------------------------------
-// Icônes par type de marqueur
-// ------------------------------------------------------------
-const COULEURS = {
-  banque:    "#dc2626", // rouge
-  hopital:   "#2563eb", // bleu
-  donneur:   "#16a34a", // vert
-  personnel: "#ea580c", // orange
-  vous:      "#7c3aed", // violet
-} as const;
-
-type TypeMarqueur = keyof typeof COULEURS;
-
-const ICONES: Record<TypeMarqueur, L.DivIcon> = {
-  banque:    creerIcone(COULEURS.banque),
-  hopital:   creerIcone(COULEURS.hopital),
-  donneur:   creerIcone(COULEURS.donneur),
-  personnel: creerIcone(COULEURS.personnel),
-  vous:      creerIcone(COULEURS.vous),
-};
 
 // ------------------------------------------------------------
 // Types
@@ -58,7 +16,7 @@ export interface Marqueur {
   position: [number, number];
   titre: string;
   sousTitre?: string;
-  type?: TypeMarqueur;
+  type?: "banque" | "hopital" | "donneur" | "personnel" | "vous";
   details?: React.ReactNode;
 }
 
@@ -69,6 +27,22 @@ interface CarteInteractiveProps {
   hauteur?: string;
   onMarkerClick?: (id: number) => void;
 }
+
+// ------------------------------------------------------------
+// Couleurs et tailles par type
+// ------------------------------------------------------------
+const STYLES: Record<
+  string,
+  { couleur: string; rayon: number; bordure: number }
+> = {
+  banque:    { couleur: "#dc2626", rayon: 12, bordure: 3 }, // rouge
+  hopital:   { couleur: "#2563eb", rayon: 10, bordure: 3 }, // bleu
+  donneur:   { couleur: "#16a34a", rayon: 7,  bordure: 2 }, // vert
+  personnel: { couleur: "#ea580c", rayon: 8,  bordure: 2 }, // orange
+  vous:      { couleur: "#7c3aed", rayon: 11, bordure: 4 }, // violet
+};
+
+const STYLE_DEFAUT = STYLES.donneur;
 
 // ------------------------------------------------------------
 // Composant
@@ -97,28 +71,37 @@ export function CarteInteractive({
         />
 
         {marqueurs.map((m) => {
-          // ✅ Fallback : si le type n'existe pas, utilise "donneur"
-          const icone = ICONES[m.type as TypeMarqueur] ?? ICONES.donneur;
+          const style = STYLES[m.type ?? ""] ?? STYLE_DEFAUT;
 
           return (
-            <Marker
+            <CircleMarker
               key={m.id}
-              position={m.position}
-              icon={icone}
+              center={m.position}
+              radius={style.rayon}
+              pathOptions={{
+                color: "#ffffff",              // bordure blanche
+                fillColor: style.couleur,      // remplissage coloré
+                fillOpacity: 0.9,
+                weight: style.bordure,
+              }}
               eventHandlers={{
                 click: () => onMarkerClick?.(m.id),
               }}
             >
               <Popup>
-                <div className="p-1">
-                  <h4 className="font-bold text-neutral-900">{m.titre}</h4>
+                <div className="p-1 min-w-[180px]">
+                  <h4 className="font-bold text-neutral-900 text-sm">
+                    {m.titre}
+                  </h4>
                   {m.sousTitre && (
-                    <p className="text-sm text-neutral-600">{m.sousTitre}</p>
+                    <p className="text-xs text-neutral-600 mt-0.5">
+                      {m.sousTitre}
+                    </p>
                   )}
-                  {m.details && <div className="mt-2">{m.details}</div>}
+                  {m.details && <div className="mt-2 text-xs">{m.details}</div>}
                 </div>
               </Popup>
-            </Marker>
+            </CircleMarker>
           );
         })}
       </MapContainer>
