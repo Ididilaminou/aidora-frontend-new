@@ -1,0 +1,24 @@
+{
+  "lint": {
+    "rules": {
+      "exclude": [
+        "no-sloppy-imports",
+        "no-window",
+        "no-window-prefix",
+        "jsx-button-has-type",
+        "no-explicit-any",
+        "no-unused-vars",
+        "no-unversioned-import",
+        "require-await",
+        "no-empty-interface",
+        "prefer-const",
+        "no-inferrable-types",
+        "no-non-null-assertion",
+        "ban-ts-comment",
+        "no-explicit-any",
+        "no-unused-vars",
+        "no-undef"
+      ]
+    }
+  }
+}
