@@ -1,0 +1,12 @@
+{
+  "lint": {
+    "rules": {
+      "exclude": [
+        "no-sloppy-imports",
+        "no-window",
+        "no-window-prefix",
+        "jsx-button-has-type"
+      ]
+    }
+  }
+}
