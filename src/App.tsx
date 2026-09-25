@@ -5,6 +5,7 @@ import { ThemeProvider } from "./context/ThemeContext";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import { ROUTES } from "./config/routes";
 import { useAuth } from "./hooks/useAuth";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 // ---------- Public ----------
 import { LandingPage } from "./features/landing/pages/LandingPage";
