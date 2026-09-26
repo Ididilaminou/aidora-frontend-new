@@ -32,3 +32,18 @@ export interface ReponseAuth {
   token: string;
   user: Utilisateur;
 }
+
+/**
+ * Réponse générique d'inscription.
+ */
+export interface ReponseInscription {
+  message?: string;
+  utilisateurId?: number;
+  utilisateur_id?: number;
+  telephone?: string;
+  email?: string | null;
+  dateExpiration?: string;
+  codeActivation?: string;
+  token?: string;
+  user?: Utilisateur;
+}

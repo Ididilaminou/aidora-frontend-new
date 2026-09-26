@@ -32,9 +32,22 @@ export function LoginPage() {
     setChargement(true);
 
     try {
+      // ✅ login renvoie { token, user } (cf. api.ts)
       const resultat = await login({ identifiant, motDePasse });
+
+      if (!resultat?.token || !resultat?.user) {
+        throw new Error("Réponse du serveur invalide.");
+      }
+
+      // Le contexte gère { token, user }
       connexion(resultat);
-      afficher("Connexion réussie", "success", `Bienvenue ${resultat.user.prenom} !`);
+
+      afficher(
+        "Connexion réussie",
+        "success",
+        `Bienvenue ${resultat.user.prenom} !`
+      );
+
       navigate(accueilPour(resultat.user.role as Role), { replace: true });
     } catch (err) {
       const message = extraireMessageErreur(err);
@@ -46,9 +59,8 @@ export function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-neutral-50 px-4 py-8">
+    <div className="flex min-h-screen items-center justify-center bg-neutral-50 px-4 py-8 dark:bg-neutral-950">
       <div className="w-full max-w-md">
-        {/* En-tête */}
         <div className="mb-8 text-center">
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary-500 text-white shadow-lg">
             <Droplets size={32} />
@@ -61,8 +73,7 @@ export function LoginPage() {
           </p>
         </div>
 
-        {/* Formulaire */}
-        <div className="rounded-2xl border border-neutral-200 bg-white p-8 shadow-soft">
+        <div className="rounded-2xl border border-neutral-200 bg-white p-8 shadow-soft dark:border-neutral-800 dark:bg-neutral-900">
           <form onSubmit={soumettre} className="flex flex-col gap-4">
             <FormField label="Courriel ou téléphone" obligatoire>
               <Input
@@ -87,6 +98,15 @@ export function LoginPage() {
               />
             </FormField>
 
+            <div className="flex justify-end">
+              <Link
+                to="/mot-de-passe-oublie"
+                className="text-xs font-medium text-primary-600 hover:text-primary-700 dark:text-primary-400"
+              >
+                Mot de passe oublié ?
+              </Link>
+            </div>
+
             <FormError message={erreur} />
 
             <Button
@@ -103,7 +123,7 @@ export function LoginPage() {
             Pas encore de compte ?{" "}
             <Link
               to={ROUTES.INSCRIPTION}
-              className="font-medium text-primary-600 hover:text-primary-700"
+              className="font-medium text-primary-600 hover:text-primary-700 dark:text-primary-400"
             >
               Créer un compte
             </Link>
@@ -113,3 +133,5 @@ export function LoginPage() {
     </div>
   );
 }
+
+export default LoginPage;

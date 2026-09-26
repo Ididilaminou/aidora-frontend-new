@@ -27,6 +27,7 @@ export interface RegisterPayload {
   longitude?: number;
   groupeSanguin: string;
   rhesus: string;
+  codeInvitation?: string;
 }
 
 export interface ReponseInscription {
@@ -36,8 +37,16 @@ export interface ReponseInscription {
   telephone?: string;
   email?: string | null;
   dateExpiration?: string;
-  token?: string;
-  user?: unknown;
+  codeActivation?: string;
+}
+
+export interface ActivationPayload {
+  identifiant: string;
+  codeActivation: string;
+}
+
+export interface RenvoiPayload {
+  identifiant: string;
 }
 
 // ============================================================
@@ -53,32 +62,73 @@ export async function login(payload: LoginPayload): Promise<ReponseAuth> {
 // INSCRIPTION DONNEUR
 // ============================================================
 
-export async function register(payload: RegisterPayload): Promise<ReponseInscription> {
+export async function register(
+  payload: RegisterPayload
+): Promise<ReponseInscription> {
   const reponse = await api.post("/auth/inscription-donneur", payload);
   return reponse.data?.data ?? reponse.data;
 }
 
 // ============================================================
-// ACTIVATION (code reçu par SMS/email)
-// Le mot de passe est défini à l'inscription — pas à l'activation.
+// ACTIVATION
 // ============================================================
 
-export interface ActivationPayload {
-  code: string;
-  telephone?: string;
-  courriel?: string;
-}
-
 export async function activerCompte(payload: ActivationPayload) {
-  const reponse = await api.post("/auth/activation", payload);
+  // ✅ Le backend attend { identifiant, codeActivation }
+  const reponse = await api.post("/auth/activation", {
+    identifiant: payload.identifiant,
+    codeActivation: payload.codeActivation,
+  });
   return reponse.data?.data ?? reponse.data;
 }
 
 // ============================================================
-// RENVOYER CODE D'ACTIVATION
+// RENVOYER CODE
 // ============================================================
 
-export async function renvoyerCode(telephone: string) {
-  const reponse = await api.post("/auth/renvoyer-activation", { telephone });
+export async function renvoyerCode(payload: RenvoiPayload) {
+  // ✅ Le backend attend { identifiant }
+  const reponse = await api.post("/auth/renvoyer-activation", {
+    identifiant: payload.identifiant,
+  });
+  return reponse.data?.data ?? reponse.data;
+}
+
+// ============================================================
+// MOT DE PASSE OUBLIÉ
+// ============================================================
+
+export async function demanderReset(payload: { identifiant: string }) {
+  const reponse = await api.post("/auth/mot-de-passe-oublie", payload);
+  return reponse.data?.data ?? reponse.data;
+}
+
+export async function reinitialiserMotDePasse(payload: {
+  identifiant: string;
+  code: string;
+  nouveauMotDePasse: string;
+}) {
+  const reponse = await api.post("/auth/reinitialiser-mot-de-passe", payload);
+  return reponse.data?.data ?? reponse.data;
+}
+
+// ============================================================
+// MODIFIER MOT DE PASSE (connecté)
+// ============================================================
+
+export async function modifierMotDePasse(payload: {
+  ancienMotDePasse: string;
+  nouveauMotDePasse: string;
+}) {
+  const reponse = await api.put("/auth/mot-de-passe", payload);
+  return reponse.data?.data ?? reponse.data;
+}
+
+// ============================================================
+// LOGOUT
+// ============================================================
+
+export async function logout() {
+  const reponse = await api.post("/auth/logout");
   return reponse.data?.data ?? reponse.data;
 }

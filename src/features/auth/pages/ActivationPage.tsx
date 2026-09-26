@@ -1,21 +1,14 @@
 // ============================================================
 // AIDORA — ACTIVATION DU COMPTE DONNEUR
-// ------------------------------------------------------------
-// Le mot de passe est défini à l'inscription. Ici on active
-// uniquement avec téléphone + code (format AID-XXXXXX, 15 min).
+// Reçoit : /activation?code=AID-XXXXXX&email=...&tel=...
+// Envoie : { identifiant, codeActivation } au backend
 // ============================================================
 
 import { useState, useEffect, type FormEvent } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
-  Phone,
-  ShieldCheck,
-  ArrowRight,
-  CheckCircle2,
-  AlertCircle,
-  RefreshCw,
-  KeyRound,
-  Loader2,
+  Phone, Mail, ShieldCheck, ArrowRight, CheckCircle2, AlertCircle,
+  RefreshCw, KeyRound, Loader2,
 } from "lucide-react";
 import { Button } from "../../../components/ui/Button";
 import { Input } from "../../../components/ui/Input";
@@ -36,34 +29,48 @@ export function ActivationPage() {
   const { afficher } = useToast();
 
   const [telephone, setTelephone] = useState("");
+  const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
+  const [modeEmail, setModeEmail] = useState(false);
 
   const [erreur, setErreur] = useState("");
   const [chargement, setChargement] = useState(false);
   const [succes, setSucces] = useState(false);
-
   const [renvoiChargement, setRenvoiChargement] = useState(false);
   const [compteur, setCompteur] = useState(0);
 
   useEffect(() => {
     const tel = searchParams.get("tel");
+    const mail = searchParams.get("email");
+    const codeUrl = searchParams.get("code");
+
+    if (mail) {
+      setEmail(mail);
+      setModeEmail(true);
+    }
     if (tel) setTelephone(tel);
+    if (codeUrl) setCode(codeUrl.toUpperCase());
   }, [searchParams]);
 
   useEffect(() => {
     if (compteur <= 0) return;
-    const timer = setTimeout(() => setCompteur((c) => c - 1), 1000);
-    return () => clearTimeout(timer);
+    const t = setTimeout(() => setCompteur((c) => c - 1), 1000);
+    return () => clearTimeout(t);
   }, [compteur]);
 
+  // ----------------------------------------------------------
+  // Récupère l'identifiant unique (email OU téléphone)
+  // ----------------------------------------------------------
+  function getIdentifiant(): string {
+    return modeEmail ? email.trim().toLowerCase() : telephone.trim();
+  }
+
+  // ----------------------------------------------------------
+  // Activation
+  // ----------------------------------------------------------
   async function activer(e: FormEvent) {
     e.preventDefault();
     setErreur("");
-
-    if (!telephone.trim() || telephone.trim().length < 8) {
-      setErreur("Le numéro de téléphone est invalide.");
-      return;
-    }
 
     const codeNettoye = code.trim().toUpperCase();
     if (!CODE_REGEX.test(codeNettoye)) {
@@ -71,11 +78,27 @@ export function ActivationPage() {
       return;
     }
 
+    const identifiant = getIdentifiant();
+
+    if (!identifiant) {
+      setErreur(modeEmail ? "L'email est obligatoire." : "Le téléphone est obligatoire.");
+      return;
+    }
+    if (!modeEmail && identifiant.length < 8) {
+      setErreur("Le numéro de téléphone est invalide.");
+      return;
+    }
+    if (modeEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(identifiant)) {
+      setErreur("Le format de l'email est invalide.");
+      return;
+    }
+
     setChargement(true);
     try {
+      // ✅ Envoie { identifiant, codeActivation } — aligné avec le backend
       await activerCompte({
-        telephone: telephone.trim(),
-        code: codeNettoye,
+        identifiant,
+        codeActivation: codeNettoye,
       });
 
       setSucces(true);
@@ -89,12 +112,22 @@ export function ActivationPage() {
     }
   }
 
+  // ----------------------------------------------------------
+  // Renvoi du code
+  // ----------------------------------------------------------
   async function handleRenvoyer() {
-    if (compteur > 0 || !telephone.trim()) return;
+    if (compteur > 0) return;
+
+    const identifiant = getIdentifiant();
+    if (!identifiant) {
+      afficher("Champ manquant", "warning", "Renseignez votre email ou téléphone.");
+      return;
+    }
 
     setRenvoiChargement(true);
     try {
-      await renvoyerCode(telephone.trim());
+      // ✅ Envoie { identifiant } — aligné avec le backend
+      await renvoyerCode({ identifiant });
       afficher("Code renvoyé", "success", "Vérifiez vos SMS / email.");
       setCompteur(DELAI_RENVOI);
     } catch (err) {
@@ -104,6 +137,9 @@ export function ActivationPage() {
     }
   }
 
+  // ----------------------------------------------------------
+  // Écran de succès
+  // ----------------------------------------------------------
   if (succes) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-neutral-50 px-4 py-8 dark:bg-neutral-950">
@@ -116,10 +152,8 @@ export function ActivationPage() {
               Compte activé !
             </h1>
             <p className="mt-2 text-sm text-neutral-500 dark:text-neutral-400">
-              Bienvenue sur Aidora. Vous pouvez dès maintenant vous connecter
-              avec le mot de passe choisi à l'inscription.
+              Bienvenue sur Aidora. Connectez-vous avec votre mot de passe.
             </p>
-
             <Button
               iconeDroite={<ArrowRight size={16} />}
               onClick={() => navigate(ROUTES.CONNEXION)}
@@ -150,20 +184,55 @@ export function ActivationPage() {
 
         <Card padding="lg">
           <form onSubmit={activer} className="flex flex-col gap-4">
-            <FormField
-              label="Téléphone"
-              obligatoire
-              aide="Le numéro utilisé à l'inscription"
-            >
-              <Input
-                required
-                type="tel"
-                placeholder="+237 690 00 00 00"
-                iconeGauche={<Phone size={16} />}
-                value={telephone}
-                onChange={(e) => setTelephone(e.target.value)}
-              />
-            </FormField>
+            {/* Bascule Email / Téléphone */}
+            <div className="flex gap-2 rounded-lg bg-neutral-100 p-1 dark:bg-neutral-800">
+              <button
+                type="button"
+                onClick={() => setModeEmail(false)}
+                className={`flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition ${
+                  !modeEmail
+                    ? "bg-white text-primary-600 shadow-sm dark:bg-neutral-900 dark:text-primary-400"
+                    : "text-neutral-500 dark:text-neutral-400"
+                }`}
+              >
+                <Phone size={14} /> Téléphone
+              </button>
+              <button
+                type="button"
+                onClick={() => setModeEmail(true)}
+                className={`flex flex-1 items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition ${
+                  modeEmail
+                    ? "bg-white text-primary-600 shadow-sm dark:bg-neutral-900 dark:text-primary-400"
+                    : "text-neutral-500 dark:text-neutral-400"
+                }`}
+              >
+                <Mail size={14} /> Email
+              </button>
+            </div>
+
+            {modeEmail ? (
+              <FormField label="Email" obligatoire aide="L'email utilisé à l'inscription">
+                <Input
+                  required
+                  type="email"
+                  placeholder="exemple@email.cm"
+                  iconeGauche={<Mail size={16} />}
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              </FormField>
+            ) : (
+              <FormField label="Téléphone" obligatoire aide="Le numéro utilisé à l'inscription">
+                <Input
+                  required
+                  type="tel"
+                  placeholder="+237 690 00 00 00"
+                  iconeGauche={<Phone size={16} />}
+                  value={telephone}
+                  onChange={(e) => setTelephone(e.target.value)}
+                />
+              </FormField>
+            )}
 
             <FormField
               label="Code d'activation"
@@ -188,17 +257,15 @@ export function ActivationPage() {
               <button
                 type="button"
                 onClick={handleRenvoyer}
-                disabled={compteur > 0 || renvoiChargement || !telephone}
-                className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium text-primary-600 transition hover:bg-primary-50 disabled:opacity-50 dark:text-primary-400 dark:hover:bg-primary-500/10"
+                disabled={compteur > 0 || renvoiChargement}
+                className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-medium text-primary-600 transition hover:bg-primary-50 disabled:opacity-50 dark:text-primary-400"
               >
                 {renvoiChargement ? (
                   <Loader2 size={12} className="animate-spin" />
                 ) : (
                   <RefreshCw size={12} />
                 )}
-                {compteur > 0
-                  ? `Renvoyer dans ${compteur}s`
-                  : "Renvoyer le code"}
+                {compteur > 0 ? `Renvoyer dans ${compteur}s` : "Renvoyer le code"}
               </button>
             </div>
 
@@ -231,8 +298,7 @@ export function ActivationPage() {
             size={16}
           />
           <p className="text-xs text-info-700 dark:text-info-400">
-            Le code d'activation est valable <strong>15 minutes</strong>. Si
-            vous ne le recevez pas, cliquez sur "Renvoyer le code".
+            Le code est valable <strong>15 minutes</strong>. S'il n'arrive pas, cliquez sur "Renvoyer le code".
           </p>
         </div>
       </div>

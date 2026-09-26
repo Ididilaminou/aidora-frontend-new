@@ -1,9 +1,10 @@
-// ============================================================
+﻿// ============================================================
 // AIDORA — INSCRIPTION DONNEUR (Cameroun)
+// Supporte les invitations : /inscription?code=XXX&email=YYY
 // ============================================================
 
-import { useState, type FormEvent } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useState, useEffect, type FormEvent } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import {
   Heart, Mail, Lock, User, Phone, MapPin, ArrowRight,
   CheckCircle2, AlertCircle, Navigation, Loader2, Droplets,
@@ -54,7 +55,10 @@ const RHESUS = [
 
 export function RegisterPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { afficher } = useToast();
+
+  const [codeInvitation, setCodeInvitation] = useState<string | null>(null);
 
   const [form, setForm] = useState({
     prenom: "",
@@ -83,6 +87,24 @@ export function RegisterPage() {
 
   const [geoChargement, setGeoChargement] = useState(false);
   const [geoSucces, setGeoSucces] = useState(false);
+
+  // ---- Pré-remplissage depuis une invitation ----
+  useEffect(() => {
+    const code = searchParams.get("code");
+    const mail = searchParams.get("email");
+
+    if (mail) {
+      setForm((f) => ({ ...f, email: mail }));
+    }
+    if (code) {
+      setCodeInvitation(code);
+      afficher(
+        "Invitation détectée",
+        "info",
+        "Complétez le formulaire pour créer votre compte."
+      );
+    }
+  }, [searchParams, afficher]);
 
   async function utiliserMaPosition() {
     if (!navigator.geolocation) {
@@ -156,7 +178,6 @@ export function RegisterPage() {
       setErreur("Veuillez sélectionner votre rhésus.");
       return;
     }
-    // Aligné backend : min 8 + lettre + chiffre
     if (form.motDePasse.length < 8) {
       setErreur("Le mot de passe doit contenir au moins 8 caractères.");
       return;
@@ -189,6 +210,7 @@ export function RegisterPage() {
         longitude: form.longitude ?? undefined,
         groupeSanguin: form.groupeSanguin,
         rhesus: form.rhesus,
+        codeInvitation: codeInvitation || undefined,
       });
 
       setSucces(true);
@@ -237,11 +259,12 @@ export function RegisterPage() {
               <div className="flex w-full flex-col gap-2">
                 <Button
                   iconeDroite={<ArrowRight size={16} />}
-                  onClick={() =>
-                    navigate(
-                      `${ROUTES.ACTIVATION}?tel=${encodeURIComponent(form.telephone)}`
-                    )
-                  }
+                  onClick={() => {
+                    const params = new URLSearchParams();
+                    if (form.email) params.set("email", form.email);
+                    if (form.telephone) params.set("tel", form.telephone);
+                    navigate(`${ROUTES.ACTIVATION}?${params.toString()}`);
+                  }}
                   className="w-full"
                 >
                   Activer mon compte

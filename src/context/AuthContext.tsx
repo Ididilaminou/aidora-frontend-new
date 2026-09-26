@@ -28,33 +28,35 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(null);
   const [chargement, setChargement] = useState(true);
 
-  // --------------------------------------------------------
-  // Restauration de session au démarrage
-  // --------------------------------------------------------
   useEffect(() => {
-    const tokenStocke = storage.getToken();
-    const utilisateurStocke = storage.getUtilisateur<Utilisateur>();
+    try {
+      const tokenStocke = storage.getToken();
+      const utilisateurStocke = storage.getUtilisateur<Utilisateur>();
 
-    if (tokenStocke && utilisateurStocke) {
-      setToken(tokenStocke);
-      setUtilisateur(utilisateurStocke);
+      if (tokenStocke && utilisateurStocke) {
+        setToken(tokenStocke);
+        setUtilisateur(utilisateurStocke);
+      }
+    } catch (err) {
+      console.warn("[Auth] Restauration session échouée :", err);
+      storage.viderSession();
+    } finally {
+      setChargement(false);
     }
-    setChargement(false);
   }, []);
 
-  // --------------------------------------------------------
-  // Connexion
-  // --------------------------------------------------------
   const connexion = useCallback((reponse: ReponseAuth) => {
+    if (!reponse?.token || !reponse?.user) {
+      console.error("[Auth] Réponse invalide :", reponse);
+      throw new Error("Réponse du serveur invalide.");
+    }
+
     storage.setToken(reponse.token);
     storage.setUtilisateur(reponse.user);
     setToken(reponse.token);
     setUtilisateur(reponse.user);
   }, []);
 
-  // --------------------------------------------------------
-  // Déconnexion
-  // --------------------------------------------------------
   const deconnexion = useCallback(() => {
     storage.viderSession();
     setToken(null);
@@ -66,7 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       value={{
         utilisateur,
         token,
-        estConnecte: !!token,
+        estConnecte: !!token && !!utilisateur,
         chargement,
         connexion,
         deconnexion,
