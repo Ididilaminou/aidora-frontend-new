@@ -20,6 +20,7 @@ import { reverseGeocode } from "../../donneurs/api";
 import { useToast } from "../../../hooks/useToast";
 import { extraireMessageErreur } from "../../../services/api";
 import { ROUTES } from "../../../config/routes";
+import { obtenirPosition } from "../../../services/geolocalisation";
 
 const EXEMPLES_PRENOMS = [
   "Marie", "Aïcha", "Fadimatou", "Émilienne", "Nadège",
@@ -106,58 +107,73 @@ export function RegisterPage() {
     }
   }, [searchParams, afficher]);
 
-  async function utiliserMaPosition() {
-    if (!navigator.geolocation) {
-      afficher("Géolocalisation non supportée", "danger");
+  // ----------------------------------------------------------
+  // GÉOLOCALISATION — version corrigée
+  // ----------------------------------------------------------
+
+async function utiliserMaPosition() {
+  setGeoChargement(true);
+  setGeoSucces(false);
+
+  try {
+    const position = await obtenirPosition();
+
+    if (!position) {
+      afficher(
+        "Localisation impossible",
+        "warning",
+        "Saisissez votre ville manuellement."
+      );
       return;
     }
 
-    setGeoChargement(true);
-    setGeoSucces(false);
+    const { latitude, longitude, source } = position;
+    setForm((f) => ({ ...f, latitude, longitude }));
 
-    navigator.geolocation.getCurrentPosition(
-      async (position) => {
-        const { latitude, longitude } = position.coords;
-        setForm((f) => ({ ...f, latitude, longitude }));
+    // Reverse geocode (adresse à partir des coordonnées)
+    let adresse: any = {};
+    try {
+      adresse = await reverseGeocode(latitude, longitude);
+    } catch (err) {
+      console.warn("Reverse geocode échoué :", err);
+    }
 
-        const adresse = await reverseGeocode(latitude, longitude);
+    setForm((f) => ({
+      ...f,
+      latitude,
+      longitude,
+      ville: adresse.ville ?? f.ville,
+      quartier: adresse.quartier ?? f.quartier,
+      adresse: adresse.adresse ?? f.adresse,
+    }));
 
-        setForm((f) => ({
-          ...f,
-          latitude,
-          longitude,
-          ville: adresse.ville ?? f.ville,
-          quartier: adresse.quartier ?? f.quartier,
-          adresse: adresse.adresse ?? f.adresse,
-        }));
+    setGeoSucces(true);
 
-        setGeoChargement(false);
-        setGeoSucces(true);
-
-        if (adresse.ville) {
-          afficher(
-            "Position détectée",
-            "success",
-            `${adresse.quartier ? adresse.quartier + ", " : ""}${adresse.ville}`
-          );
-        } else {
-          afficher("Position enregistrée", "success");
-        }
-      },
-      (err) => {
-        setGeoChargement(false);
-        let msg = "Impossible de vous localiser.";
-        if (err.code === err.PERMISSION_DENIED) {
-          msg = "Géolocalisation refusée. Remplissez manuellement.";
-        } else if (err.code === err.TIMEOUT) {
-          msg = "Délai dépassé. Réessayez ou remplissez manuellement.";
-        }
-        afficher("Géolocalisation", "warning", msg);
-      },
-      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
-    );
+    if (source === "ip") {
+      afficher(
+        "Position approximative détectée",
+        "info",
+        "Basée sur votre connexion. Vérifiez et corrigez si besoin."
+      );
+    } else if (adresse.ville) {
+      afficher(
+        "Position détectée",
+        "success",
+        `${adresse.quartier ? adresse.quartier + ", " : ""}${adresse.ville}`
+      );
+    } else {
+      afficher("Position enregistrée", "success");
+    }
+  } catch (err) {
+    afficher("Erreur de localisation", "danger", "Remplissez manuellement.");
+  } finally {
+    setGeoChargement(false);
   }
+}
 
+  // ----------------------------------------------------------
+  // SOUMISSION
+  // ----------------------------------------------------------
   async function soumettre(e: FormEvent) {
     e.preventDefault();
     setErreur("");
@@ -228,6 +244,9 @@ export function RegisterPage() {
     }
   }
 
+  // ----------------------------------------------------------
+  // ÉCRAN DE SUCCÈS
+  // ----------------------------------------------------------
   if (succes) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-neutral-50 px-4 py-8 dark:bg-neutral-950">
@@ -284,6 +303,9 @@ export function RegisterPage() {
     );
   }
 
+  // ----------------------------------------------------------
+  // FORMULAIRE
+  // ----------------------------------------------------------
   return (
     <div className="flex min-h-screen items-center justify-center bg-neutral-50 px-4 py-8 dark:bg-neutral-950">
       <div className="w-full max-w-md">

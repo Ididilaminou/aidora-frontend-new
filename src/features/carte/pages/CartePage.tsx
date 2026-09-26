@@ -19,6 +19,7 @@ import { Loader } from "../../../components/ui/Loader";
 import { EmptyState } from "../../../components/ui/EmptyState";
 import { CarteInteractive, type Marqueur } from "../../../components/carte/CarteInteractive";
 import api, { extraireMessageErreur } from "../../../services/api";
+import { obtenirPosition } from "../../../services/geolocalisation";
 import { useToast } from "../../../hooks/useToast";
 import {
   libelleType,
@@ -87,9 +88,7 @@ export function CartePage() {
     try {
       const [repEtabs, repDonneurs, repPersonnels] = await Promise.all([
         api.get("/etablissements"),
-        // 🆕 Récupère TOUS les donneurs (avec coordonnées)
         api.get("/donneurs/admin/tous", { params: { geo: "true" } }),
-        // Récupère tous les personnels (admin)
         api.get("/personnels", { params: { limite: 500 } }),
       ]);
 
@@ -130,27 +129,42 @@ export function CartePage() {
   }, [charger]);
 
   // --------------------------------------------------------
-  // Géolocalisation
+  // Géolocalisation — VERSION CORRIGÉE
   // --------------------------------------------------------
-  function meGeolocaliser() {
-    if (!navigator.geolocation) {
-      afficher("Géolocalisation non supportée", "danger");
+
+
+async function meGeolocaliser() {
+  setChargementGeo(true);
+
+  try {
+    const position = await obtenirPosition();
+
+    if (!position) {
+      afficher(
+        "Localisation impossible",
+        "warning",
+        "Vérifiez les permissions de votre navigateur."
+      );
       return;
     }
-    setChargementGeo(true);
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setPositionUtilisateur([pos.coords.latitude, pos.coords.longitude]);
-        afficher("Position trouvée", "success");
-        setChargementGeo(false);
-      },
-      (err) => {
-        afficher("Impossible de vous localiser", "danger", err.message);
-        setChargementGeo(false);
-      },
-      { enableHighAccuracy: true, timeout: 10000 }
-    );
+
+    setPositionUtilisateur([position.latitude, position.longitude]);
+
+    if (position.source === "ip") {
+      afficher(
+        "Position approximative",
+        "info",
+        "Détectée via votre connexion internet."
+      );
+    } else {
+      afficher("Position trouvée", "success");
+    }
+  } catch (err) {
+    afficher("Erreur de localisation", "danger");
+  } finally {
+    setChargementGeo(false);
   }
+}
 
   // --------------------------------------------------------
   // Construction des marqueurs
@@ -167,7 +181,6 @@ export function CartePage() {
     const hopital = e.type === "HOPITAL";
     const avecBanque = hopital && possedeBanque(e);
 
-    // Compte les personnels rattachés à cet étab
     const nbPersonnels = personnels.filter(
       (p) => p.etablissement_id === e.id
     ).length;
@@ -225,7 +238,7 @@ export function CartePage() {
     });
   });
 
-  // 3. Personnels — affichés à la position de leur établissement
+  // 3. Personnels
   personnels.forEach((p) => {
     if (filtre === "banques" || filtre === "hopitaux" || filtre === "donneurs")
       return;
@@ -234,7 +247,6 @@ export function CartePage() {
     const etab = etablissements.find((e) => e.id === p.etablissement_id);
     if (!etab || etab.latitude == null || etab.longitude == null) return;
 
-    // Léger décalage pour ne pas superposer les personnels au même endroit
     const offset = (p.id % 50) * 0.0001;
     const position: [number, number] = [
       etab.latitude + offset,

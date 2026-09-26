@@ -16,11 +16,13 @@ import { Card, CardTitle, CardDescription } from "../../../components/ui/Card";
 import { Button } from "../../../components/ui/Button";
 import { Loader } from "../../../components/ui/Loader";
 import { EmptyState } from "../../../components/ui/EmptyState";
+import { obtenirPosition } from "../../../services/geolocalisation";
 import {
   CarteInteractive,
   type Marqueur,
 } from "../../../components/carte/CarteInteractive";
 import { useAuth } from "../../../hooks/useAuth";
+import { useToast } from "../../../hooks/useToast";
 import { extraireMessageErreur } from "../../../services/api";
 import api from "../../../services/api";
 import {
@@ -47,6 +49,8 @@ type FiltreType = "tous" | "mon_etab" | "donneurs" | "etablissements";
 // ============================================================
 export function MaCarteLocalePage() {
   const { utilisateur } = useAuth();
+  const { afficher } = useToast();
+
   const [chargement, setChargement] = useState(true);
   const [erreur, setErreur] = useState<string | null>(null);
 
@@ -57,8 +61,6 @@ export function MaCarteLocalePage() {
   const [positionUtilisateur, setPositionUtilisateur] = useState<[number, number] | null>(null);
   const [chargementGeo, setChargementGeo] = useState(false);
 
-  // ✅ Extraction des valeurs utilisées dans le useCallback
-  //    (évite le warning React Compiler sur les dépendances)
   const etablissementId = utilisateur?.etablissement_id;
   const estBanque = utilisateur?.role === "PERSONNEL_BANQUE";
 
@@ -144,25 +146,40 @@ export function MaCarteLocalePage() {
     } finally {
       setChargement(false);
     }
-  }, [etablissementId, estBanque]); // 
+  }, [etablissementId, estBanque]);
 
   useEffect(() => {
     charger();
   }, [charger]);
 
-  function meGeolocaliser() {
-    if (!navigator.geolocation) return;
-    setChargementGeo(true);
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setPositionUtilisateur([pos.coords.latitude, pos.coords.longitude]);
-        setChargementGeo(false);
-      },
-      () => setChargementGeo(false),
-      { enableHighAccuracy: true, timeout: 10000 }
-    );
-  }
+  // --------------------------------------------------------
+  // Géolocalisation — VERSION CORRIGÉE
+  // --------------------------------------------------------
+  
 
+  async function meGeolocaliser() {
+    setChargementGeo(true);
+
+    try {
+      const position = await obtenirPosition();
+
+      if (!position) {
+        afficher("Localisation impossible", "warning", "Vérifiez les permissions.");
+        return;
+      }
+
+      setPositionUtilisateur([position.latitude, position.longitude]);
+
+      afficher(
+        position.source === "ip" ? "Position approximative" : "Position trouvée",
+        position.source === "ip" ? "info" : "success"
+      );
+    } catch (err) {
+      afficher("Erreur de localisation", "danger");
+    } finally {
+      setChargementGeo(false);
+    }
+  }
   // --------------------------------------------------------
   // Marqueurs
   // --------------------------------------------------------
