@@ -259,6 +259,7 @@ src/
 
 | Environnement | URL |
 |---|---|
+
 | **Production** | https://aidora-health.vercel.app |
 | **Backend API** | https://aidora-backend-voj6.onrender.com/api |
 
