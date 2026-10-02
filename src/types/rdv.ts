@@ -118,7 +118,7 @@ export interface ReponseCreneaux {
 }
 
 export interface CreerCreneauPayload {
-  etablissement_id?: number;
+  etablissement_id: number;
   date_creneau: string;
   heure_debut: string;
   heure_fin: string;
